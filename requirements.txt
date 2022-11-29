@@ -1,0 +1,21 @@
+# Dependencies
+black
+glob2
+typing_extensions
+
+pytest
+
+ipykernel
+ipython
+ipywidgets
+jupyter
+
+matplotlib
+Pillow
+
+--extra-index-url https://download.pytorch.org/whl/cu116
+torch
+torchvision
+
+git+https://github.com/qubvel/segmentation_models.pytorch
+
