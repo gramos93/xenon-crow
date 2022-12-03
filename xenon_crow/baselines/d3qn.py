@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch.nn import Conv2d, Linear, Module, ModuleDict, MSELoss, ReLU, Sequential
 
-from xenon_crow.common import BasicBuffer
+from ..common import BasicBuffer
 
 
 class ConvDuelingDQN(Module):
@@ -53,17 +53,15 @@ class DuelingDQNAgent:
     def __init__(
         self,
         env,
+        buffer,
         learning_rate=3e-4,
         gamma=0.99,
-        buffer_size=10000,
-        batch_size=32,
         device="cpu",
     ):
         self.env = env
         self.gamma = gamma
         self._step = 0
-        self.replay_buffer = BasicBuffer(max_size=buffer_size, batch_size=batch_size)
-
+        self.replay_buffer = buffer
         self.device = torch.device(device)
         self.model = ModuleDict(
             {

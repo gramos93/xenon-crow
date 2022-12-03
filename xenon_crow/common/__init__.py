@@ -1,2 +1,2 @@
-from trainer import D3QNTrainer
-from buffers import BasicBuffer
+from .trainer import D3QNTrainer
+from .buffers import BasicBuffer

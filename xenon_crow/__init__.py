@@ -1,2 +1,1 @@
-import baselines
-import common
+from . import baselines, common

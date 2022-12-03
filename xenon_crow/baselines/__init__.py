@@ -1,1 +1,1 @@
-from d3qn import DuelingDQNAgent
+from .d3qn import DuelingDQNAgent

@@ -1,14 +1,15 @@
+
 import gym
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
 from xenon_crow.baselines import DuelingDQNAgent
-from xenon_crow.common import D3QNTrainer
+from xenon_crow.common import D3QNTrainer, BasicBuffer
 
 sns.set_style('white')
 
-ENV = gym.make("LunalLander-v2")
+ENV = gym.make("LunarLander-v2")
 MAX_EP = 2000
 MAX_STEPS = 1000
 
@@ -20,7 +21,8 @@ BATCH_SIZE = 64
 
 DEVICE = 'cpu'
 
-agent = DuelingDQNAgent(ENV, LR, GAMMA, BUFFER_SIZE, DEVICE)
+replay_buffer = BasicBuffer(max_size=BUFFER_SIZE, batch_size=BATCH_SIZE)
+agent = DuelingDQNAgent(ENV, LR, GAMMA, replay_buffer, DEVICE)
 
 trainer = D3QNTrainer()
 hist = trainer.run(ENV, agent, MAX_EP, MAX_STEPS)
