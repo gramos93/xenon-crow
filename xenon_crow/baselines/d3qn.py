@@ -1,6 +1,16 @@
+from random import choice
 import numpy as np
 import torch
-from torch.nn import MSELoss, Conv2d, ReLU, Sequential, Linear, Module
+from torch.nn import (
+    MSELoss,
+    Conv2d,
+    ReLU,
+    Sequential,
+    Linear,
+    Module,
+    ModuleDict,
+    ModuleList,
+)
 from xenon_crow.common import BasicBuffer
 
 
@@ -10,9 +20,9 @@ class ConvDuelingDQN(Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.conv = Sequential(
-            Conv2d(input_dim[0], 32, kernel_size=8, stride=4),
+            Conv2d(input_dim[0], 32, kernel_size=5, stride=1),
             ReLU(),
-            Conv2d(32, 64, kernel_size=4, stride=2),
+            Conv2d(32, 64, kernel_size=5, stride=1),
             ReLU(),
             Conv2d(64, 64, kernel_size=3, stride=1),
             ReLU(),
@@ -58,49 +68,67 @@ class DuelingDQNAgent:
     ):
         self.env = env
         self.gamma = gamma
-        self.eps = eps
+        self._eps = eps
+        self._step = 0
         self.replay_buffer = BasicBuffer(max_size=buffer_size)
-
+        
         self.device = torch.device(device)
-
-        self.model = ConvDuelingDQN(env.observation_space.shape, env.action_space.n).to(
-            self.device
-        )
-
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+        self.model = ModuleDict({
+            "A": ConvDuelingDQN(env.observation_space.shape, env.action_space.n),
+            "B": ConvDuelingDQN(env.observation_space.shape, env.action_space.n),
+        }).to(self.device)
+        self.optimizers = torch.optim.Adam(self.model.parameters(), lr=learning_rate),
         self.MSE_loss = MSELoss()
 
-    def __update_eps(self):
+        self.train()
+
+    @property
+    def train(self):
+        return self._train
+
+    @train.setter
+    def set_train(self, mode:bool = True):
+        self._train = mode
+
+    @property
+    def eps(self):
+        return self._eps
+
+    @eps.setter
+    def set_eps(self, step:int):
         pass
 
     @torch.no_grad()
     def get_action(self, state):
-
-        self.__update_eps()
-        if np.random.randn() < self.eps:
-            qvals = self.model(state)
-            return np.argmax(qvals.cpu().detach().numpy())
-
-        return self.env.action_space.sample()
+        model = choice(["A", "B"])
+        qvals = self.model[model](state)
+        return np.argmax(qvals.cpu().detach().numpy()), model
 
     def compute_loss(self, batch):
-        states, actions, rewards, next_states, dones = batch
+        states, actions, rewards, next_states, dones, info = batch
 
-        curr_Q = self.model(states).gather(1, actions.unsqueeze(1))
-        curr_Q = curr_Q.squeeze(1)
-        next_Q = self.model(next_states)
-        max_next_Q = torch.max(next_Q, 1)[0]
-        # The previous implementation didn't used dones here
-        expected_Q = rewards.squeeze(1) + self.gamma * max_next_Q * dones
+        for model in self.model.keys():
+            if model == info["model"]:
+                local = model
+            else:
+                target = model
 
-        loss = self.MSE_loss(curr_Q, expected_Q)
+        with torch.set_grad_enabled(self.train):
+            curr_Q = self.model[local](states).gather(1, actions.unsqueeze(1))
+            curr_Q = curr_Q.squeeze(1)
 
+            next_Q = self.model[target](next_states)
+            max_next_Q = torch.max(next_Q, 1)[0]
+        
+            # The previous implementation didn't used dones here
+            expected_Q = rewards.squeeze(1) + self.gamma * max_next_Q * dones
+            loss = self.MSE_loss(curr_Q, expected_Q)
         return loss
 
     def update(self):
+        self.optimizer.zero_grad()
+
         batch = self.replay_buffer.sample()
         loss = self.compute_loss(batch)
-
-        self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
