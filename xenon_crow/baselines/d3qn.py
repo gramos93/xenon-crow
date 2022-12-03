@@ -1,16 +1,9 @@
 from random import choice
+
 import numpy as np
 import torch
-from torch.nn import (
-    MSELoss,
-    Conv2d,
-    ReLU,
-    Sequential,
-    Linear,
-    Module,
-    ModuleDict,
-    ModuleList,
-)
+from torch.nn import Conv2d, Linear, Module, ModuleDict, MSELoss, ReLU, Sequential
+
 from xenon_crow.common import BasicBuffer
 
 
@@ -62,22 +55,23 @@ class DuelingDQNAgent:
         env,
         learning_rate=3e-4,
         gamma=0.99,
-        eps=0.20,
         buffer_size=10000,
+        batch_size=32,
         device="cpu",
     ):
         self.env = env
         self.gamma = gamma
-        self._eps = eps
         self._step = 0
-        self.replay_buffer = BasicBuffer(max_size=buffer_size)
-        
+        self.replay_buffer = BasicBuffer(max_size=buffer_size, batch_size=batch_size)
+
         self.device = torch.device(device)
-        self.model = ModuleDict({
-            "A": ConvDuelingDQN(env.observation_space.shape, env.action_space.n),
-            "B": ConvDuelingDQN(env.observation_space.shape, env.action_space.n),
-        }).to(self.device)
-        self.optimizers = torch.optim.Adam(self.model.parameters(), lr=learning_rate),
+        self.model = ModuleDict(
+            {
+                "A": ConvDuelingDQN(env.observation_space.shape, env.action_space.n),
+                "B": ConvDuelingDQN(env.observation_space.shape, env.action_space.n),
+            }
+        ).to(self.device)
+        self.optimizers = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
         self.MSE_loss = MSELoss()
 
         self.train()
@@ -87,22 +81,22 @@ class DuelingDQNAgent:
         return self._train
 
     @train.setter
-    def set_train(self, mode:bool = True):
+    def set_train(self, mode: bool = True):
         self._train = mode
 
-    @property
-    def eps(self):
-        return self._eps
+    # @property
+    # def eps(self):
+    #     return self._eps
 
-    @eps.setter
-    def set_eps(self, step:int):
-        pass
+    # @eps.setter
+    # def set_eps(self, step: int):
+    #     pass
 
     @torch.no_grad()
     def get_action(self, state):
         model = choice(["A", "B"])
         qvals = self.model[model](state)
-        return np.argmax(qvals.cpu().detach().numpy()), model
+        return np.argmax(qvals.cpu().detach().numpy()), {"model", model}
 
     def compute_loss(self, batch):
         states, actions, rewards, next_states, dones, info = batch
@@ -119,7 +113,7 @@ class DuelingDQNAgent:
 
             next_Q = self.model[target](next_states)
             max_next_Q = torch.max(next_Q, 1)[0]
-        
+
             # The previous implementation didn't used dones here
             expected_Q = rewards.squeeze(1) + self.gamma * max_next_Q * dones
             loss = self.MSE_loss(curr_Q, expected_Q)
