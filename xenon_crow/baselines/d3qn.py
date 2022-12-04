@@ -72,7 +72,7 @@ class DuelingDQNAgent:
         self.optimizers = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
         self.MSE_loss = MSELoss()
 
-        self.train()
+        self.set_train()
 
     @property
     def train(self):
@@ -81,14 +81,6 @@ class DuelingDQNAgent:
     @train.setter
     def set_train(self, mode: bool = True):
         self._train = mode
-
-    # @property
-    # def eps(self):
-    #     return self._eps
-
-    # @eps.setter
-    # def set_eps(self, step: int):
-    #     pass
 
     @torch.no_grad()
     def get_action(self, state):

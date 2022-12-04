@@ -12,7 +12,7 @@ class BasicBuffer(object):
     
     def sample(self):
         batch = choices(self.__buffer, k=self.batch_size)
-        return [self.__data_handler.fetch(samples) for samples in batch]
+        return self.__data_handler(batch)
 
     def push(self, data):
         self.__buffer.append(data)

@@ -20,7 +20,7 @@ class D3QNTrainer(object):
 
             for step in range(max_steps):
                 action, info = agent.get_action(state)
-                next_state, reward, done = env.step(action)
+                next_state, reward, (done, trunc), info = env.step(action)
                 agent.replay_buffer.push(
                     state, action, reward, next_state, done, info
                 )
@@ -29,7 +29,7 @@ class D3QNTrainer(object):
                 if agent.replay_buffer.ready():
                     agent.update()
 
-                if done or step == max_steps - 1:
+                if done or trunc:
                     episode_rewards.append(episode_reward)
                     print(f"[INFO]: Episode {episode}: {episode_reward}")
                     break
