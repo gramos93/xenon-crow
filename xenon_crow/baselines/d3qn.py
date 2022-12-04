@@ -79,21 +79,25 @@ class DuelingDQNAgent(Module):
         buffer,
         learning_rate=3e-4,
         gamma=0.99,
+        tau=0.9,
+        epsilon = 0.99,
         format="conv",
     ):
         super(DuelingDQNAgent, self).__init__()
         self.env = env
         self.gamma = gamma
+        self.tau = tau
+        self.epsilon = epsilon
         self._step = 0
-        self.replay_buffer = {"A": buffer, "B": deepcopy(buffer)}
+        self.replay_buffer = buffer
         model_class = ConvDuelingDQN if format == "conv" else MplDuelingDQN
         self.model = ModuleDict(
             {
-                "A": model_class(env.observation_space.shape, env.action_space.n),
-                "B": model_class(env.observation_space.shape, env.action_space.n),
+                "local": model_class(env.observation_space.shape, env.action_space.n),
+                "target": model_class(env.observation_space.shape, env.action_space.n),
             }
         )
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+        self.optimizer = torch.optim.Adam(self.model["local"].parameters(), lr=learning_rate)
         self.MSE_loss = MSELoss()
 
         self._train = True
@@ -106,26 +110,34 @@ class DuelingDQNAgent(Module):
     def set_train(self, mode: bool = True):
         self._train = mode
 
-    def buffer_ready(self) -> bool:
-        return self.replay_buffer["A"].ready() and self.replay_buffer["B"].ready()
+    def __update_epsilon(self):
+        self.epsilon *= 0.99
 
+    def __update_target_model(self):
+        
+        q_model_theta = self.model['local'].state_dict()
+        target_model_theta = self.model['target'].state_dict()
+        for w in q_model_theta:
+            target_model_theta[w] = (1 - self.tau) * target_model_theta[w] + self.tau * q_model_theta[w]
+
+        self.model['target'].load_state_dict(target_model_theta, strict=True)
+    
     @torch.no_grad()
     def get_action(self, state):
-        model = choice(["A", "B"])
-        qvals = self.model[model](state)
-        return np.argmax(qvals.cpu().detach().numpy()), {"model": model}
+        if np.random.random() <= self.epsilon:
+            return self.env.action_space.sample()
+            
+        qvals = self.model['local'](state)
+        return np.argmax(qvals.cpu().detach().numpy())
 
-    def compute_loss(self, model, batch):
-        states, actions, rewards, next_states, dones, _ = batch
-        local = model
-        target = "A" if "A" != model else "B"
+    def compute_loss(self, batch):
+        states, actions, rewards, next_states, dones = batch
 
         with torch.set_grad_enabled(self.train):
-            curr_Q = self.model[local](states).gather(1, actions)
+            curr_Q = self.model['local'](states).gather(1, actions)
 
-            max_next_Q = self.model[target](next_states).argmax(1, keepdims=True)
+            max_next_Q = self.model['target'](next_states).argmax(1, keepdims=True)
 
-            # The previous implementation didn't used dones here
             expected_Q = rewards + self.gamma * max_next_Q * dones
             loss = self.MSE_loss(curr_Q, expected_Q)
         return loss
@@ -133,8 +145,9 @@ class DuelingDQNAgent(Module):
     def update(self):
         self.optimizer.zero_grad()
 
-        model = choice(["A", "B"])
-        batch = self.replay_buffer[model].sample()
-        loss = self.compute_loss(model, batch)
+        batch = self.replay_buffer.sample()
+        loss = self.compute_loss(batch)
         loss.backward()
         self.optimizer.step()
+        self.__update_target_model()
+        self.__update_epsilon()

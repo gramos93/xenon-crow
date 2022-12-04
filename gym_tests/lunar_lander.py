@@ -23,8 +23,10 @@ ENV = gym.make("LunarLander-v2")
 MAX_EP = 2000
 MAX_STEPS = 1000
 
-GAMMA = 0.99
+GAMMA = 1.0
 LR = 1e-3
+TAU = 0.001
+EPS = 0.9
 
 BUFFER_SIZE = 1e5
 BATCH_SIZE = 64
@@ -34,7 +36,15 @@ DEVICE = "cpu"
 replay_buffer = BasicBuffer(
     max_size=BUFFER_SIZE, batch_size=BATCH_SIZE, data_handler=GymDataHandler()
 )
-agent = DuelingDQNAgent(ENV, replay_buffer, LR, GAMMA, "mlp")
+agent = DuelingDQNAgent(
+    ENV,
+    replay_buffer,
+    LR,
+    GAMMA,
+    TAU,
+    EPS,
+    "mlp"
+)
 
 
 def run(env, agent, max_episodes, max_steps):
@@ -51,14 +61,14 @@ def run(env, agent, max_episodes, max_steps):
         episode_reward = 0.0
 
         for _ in range(max_steps):
-            action, info = agent.get_action(FloatTensor(state))
+            action = agent.get_action(FloatTensor(state))
             next_state, reward, done, trunc, _ = env.step(action)
-            agent.replay_buffer[info["model"]].push(
-                (state, action, reward, next_state, done or trunc, info)
+            agent.replay_buffer.push(
+                (state, action, reward, next_state, done or trunc)
             )
             episode_reward += reward
 
-            if agent.buffer_ready():
+            if agent.replay_buffer.ready():
                 agent.update()
 
             if done or trunc:
