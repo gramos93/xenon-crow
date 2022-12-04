@@ -4,8 +4,40 @@ import numpy as np
 import torch
 from torch.nn import Conv2d, Linear, Module, ModuleDict, MSELoss, ReLU, Sequential
 
-from ..common import BasicBuffer
 
+class MplDuelingDQN(Module):
+
+    def __init__(self, input_dim, output_dim):
+        super(MplDuelingDQN, self).__init__()
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        
+        self.feauture_layer = Sequential(
+            Linear(self.input_dim[0], 128),
+            ReLU(),
+            Linear(128, 128),
+            ReLU()
+        )
+
+        self.value_stream = Sequential(
+            Linear(128, 128),
+            ReLU(),
+            Linear(128, 1)
+        )
+
+        self.advantage_stream = Sequential(
+            Linear(128, 128),
+            ReLU(),
+            Linear(128, self.output_dim)
+        )
+
+    def forward(self, state):
+        features = self.feauture_layer(state)
+        values = self.value_stream(features)
+        advantages = self.advantage_stream(features)
+        qvals = values + (advantages - advantages.mean())
+        
+        return qvals
 
 class ConvDuelingDQN(Module):
     def __init__(self, input_dim, output_dim):
@@ -49,30 +81,31 @@ class ConvDuelingDQN(Module):
         )
 
 
-class DuelingDQNAgent:
+class DuelingDQNAgent(Module):
     def __init__(
         self,
         env,
         buffer,
         learning_rate=3e-4,
         gamma=0.99,
-        device="cpu",
+        format='conv',
     ):
+        super(DuelingDQNAgent, self).__init__()
         self.env = env
         self.gamma = gamma
         self._step = 0
         self.replay_buffer = buffer
-        self.device = torch.device(device)
+        model_class = ConvDuelingDQN if format == "conv" else MplDuelingDQN
         self.model = ModuleDict(
             {
-                "A": ConvDuelingDQN(env.observation_space.shape, env.action_space.n),
-                "B": ConvDuelingDQN(env.observation_space.shape, env.action_space.n),
+                "A": model_class(env.observation_space.shape, env.action_space.n),
+                "B": model_class(env.observation_space.shape, env.action_space.n),
             }
-        ).to(self.device)
+        )
         self.optimizers = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
         self.MSE_loss = MSELoss()
 
-        self.set_train()
+        self._train = True
 
     @property
     def train(self):

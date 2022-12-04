@@ -6,7 +6,7 @@ class D3QNTrainer(object):
         self.logger = self.__init_logger()
         self.device = torch.device(device)
 
-    def __init_logger():
+    def __init_logger(self):
         return None
 
     def run(self, env, agent, max_episodes, max_steps):

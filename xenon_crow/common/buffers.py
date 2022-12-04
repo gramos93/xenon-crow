@@ -3,11 +3,11 @@ from random import choices
 
 
 class BasicBuffer(object):
-    def __init__(self, data_handler, max_size=1e5, batch_size=32) -> None:
+    def __init__(self, data_handler, max_size:int=1e5, batch_size:int=32) -> None:
         super(BasicBuffer).__init__()
 
         self.batch_size = batch_size
-        self.__buffer = deque(maxlen=max_size)
+        self.__buffer = deque(maxlen=int(max_size))
         self.__data_handler = data_handler
     
     def sample(self):
