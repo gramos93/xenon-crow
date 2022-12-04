@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
+from tqdm.auto import trange
+
 from torch import FloatTensor
 from xenon_crow.baselines import DuelingDQNAgent
 from xenon_crow.common import BasicBuffer
@@ -22,7 +24,7 @@ MAX_EP = 2000
 MAX_STEPS = 1000
 
 GAMMA = 0.99
-LR = 1e-3
+LR = 1e-4
 
 BUFFER_SIZE = 1e5
 BATCH_SIZE = 64
@@ -37,34 +39,40 @@ agent = DuelingDQNAgent(ENV, replay_buffer, LR, GAMMA, "mlp")
 
 def run(env, agent, max_episodes, max_steps):
     episode_rewards = []
-
-    for episode in range(max_episodes):
+    progress_bar = trange(
+        max_episodes,
+        ncols=150,
+        desc="Training",
+        position=0,
+        leave=True
+    )
+    for _ in progress_bar:
         state, _ = env.reset()
         episode_reward = 0.0
 
         for _ in range(max_steps):
             action, info = agent.get_action(FloatTensor(state))
             next_state, reward, done, trunc, _ = env.step(action)
-            agent.replay_buffer.push(
+            agent.replay_buffer[info["model"]].push(
                 (state, action, reward, next_state, done or trunc, info)
             )
             episode_reward += reward
 
-            if agent.replay_buffer.ready():
+            if agent.buffer_ready():
                 agent.update()
 
             if done or trunc:
-                print(f"[INFO]: Episode {episode}: {episode_reward}")
                 break
 
             state = next_state
         
+        progress_bar.set_postfix(reward = episode_reward, refresh=True)
         episode_rewards.append(episode_reward)
 
     return episode_rewards
 
 
-hist = run(ENV, agent, 10, 10)
+hist = run(ENV, agent, MAX_EP, MAX_STEPS)
 
 fig, ax = plt.subplots(1, 1, figsize=(20, 8))
 x = np.arange(1, len(hist) + 1)

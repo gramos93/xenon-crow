@@ -1,34 +1,24 @@
 from random import choice
-
+from copy import deepcopy
 import numpy as np
 import torch
 from torch.nn import Conv2d, Linear, Module, ModuleDict, MSELoss, ReLU, Sequential
 
 
 class MplDuelingDQN(Module):
-
     def __init__(self, input_dim, output_dim):
         super(MplDuelingDQN, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
-        
+
         self.feauture_layer = Sequential(
-            Linear(self.input_dim[0], 128),
-            ReLU(),
-            Linear(128, 128),
-            ReLU()
+            Linear(self.input_dim[0], 128), ReLU(), Linear(128, 128), ReLU()
         )
 
-        self.value_stream = Sequential(
-            Linear(128, 128),
-            ReLU(),
-            Linear(128, 1)
-        )
+        self.value_stream = Sequential(Linear(128, 128), ReLU(), Linear(128, 1))
 
         self.advantage_stream = Sequential(
-            Linear(128, 128),
-            ReLU(),
-            Linear(128, self.output_dim)
+            Linear(128, 128), ReLU(), Linear(128, self.output_dim)
         )
 
     def forward(self, state):
@@ -36,8 +26,9 @@ class MplDuelingDQN(Module):
         values = self.value_stream(features)
         advantages = self.advantage_stream(features)
         qvals = values + (advantages - advantages.mean())
-        
+
         return qvals
+
 
 class ConvDuelingDQN(Module):
     def __init__(self, input_dim, output_dim):
@@ -88,13 +79,13 @@ class DuelingDQNAgent(Module):
         buffer,
         learning_rate=3e-4,
         gamma=0.99,
-        format='conv',
+        format="conv",
     ):
         super(DuelingDQNAgent, self).__init__()
         self.env = env
         self.gamma = gamma
         self._step = 0
-        self.replay_buffer = buffer
+        self.replay_buffer = {"A": buffer, "B": deepcopy(buffer)}
         model_class = ConvDuelingDQN if format == "conv" else MplDuelingDQN
         self.model = ModuleDict(
             {
@@ -115,18 +106,19 @@ class DuelingDQNAgent(Module):
     def set_train(self, mode: bool = True):
         self._train = mode
 
+    def buffer_ready(self) -> bool:
+        return self.replay_buffer["A"].ready() and self.replay_buffer["B"].ready()
+
     @torch.no_grad()
     def get_action(self, state):
         model = choice(["A", "B"])
         qvals = self.model[model](state)
-        return np.argmax(qvals.cpu().detach().numpy()), {"model", model}
+        return np.argmax(qvals.cpu().detach().numpy()), {"model": model}
 
-    def compute_loss(self, batch):
-        states, actions, rewards, next_states, dones, info = batch
-        local = choice(["A", "B"])
-        for model in self.model.keys():
-            if model == local:
-                target = model
+    def compute_loss(self, model, batch):
+        states, actions, rewards, next_states, dones, _ = batch
+        local = model
+        target = "A" if "A" != model else "B"
 
         with torch.set_grad_enabled(self.train):
             curr_Q = self.model[local](states).gather(1, actions)
@@ -141,7 +133,8 @@ class DuelingDQNAgent(Module):
     def update(self):
         self.optimizer.zero_grad()
 
-        batch = self.replay_buffer.sample()
-        loss = self.compute_loss(batch)
+        model = choice(["A", "B"])
+        batch = self.replay_buffer[model].sample()
+        loss = self.compute_loss(model, batch)
         loss.backward()
         self.optimizer.step()
