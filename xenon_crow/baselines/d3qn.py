@@ -102,7 +102,7 @@ class DuelingDQNAgent(Module):
                 "B": model_class(env.observation_space.shape, env.action_space.n),
             }
         )
-        self.optimizers = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
         self.MSE_loss = MSELoss()
 
         self._train = True
@@ -123,22 +123,18 @@ class DuelingDQNAgent(Module):
 
     def compute_loss(self, batch):
         states, actions, rewards, next_states, dones, info = batch
-
+        local = choice(["A", "B"])
         for model in self.model.keys():
-            if model == info["model"]:
-                local = model
-            else:
+            if model == local:
                 target = model
 
         with torch.set_grad_enabled(self.train):
-            curr_Q = self.model[local](states).gather(1, actions.unsqueeze(1))
-            curr_Q = curr_Q.squeeze(1)
+            curr_Q = self.model[local](states).gather(1, actions)
 
-            next_Q = self.model[target](next_states)
-            max_next_Q = torch.max(next_Q, 1)[0]
+            max_next_Q = self.model[target](next_states).argmax(1, keepdims=True)
 
             # The previous implementation didn't used dones here
-            expected_Q = rewards.squeeze(1) + self.gamma * max_next_Q * dones
+            expected_Q = rewards + self.gamma * max_next_Q * dones
             loss = self.MSE_loss(curr_Q, expected_Q)
         return loss
 

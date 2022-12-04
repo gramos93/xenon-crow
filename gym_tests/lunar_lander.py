@@ -1,7 +1,9 @@
 import sys
-
+from pathlib import Path
 # Add xenon_crow path to python module search path.
-sys.path.append("/home/gramos/Projects/IFT-7201/project/xenon-crow/")
+sys.path.append(
+    str(Path(__file__).parent.resolve().parent)
+)
 
 import gym
 import matplotlib.pyplot as plt
@@ -10,7 +12,7 @@ import seaborn as sns
 
 from torch import FloatTensor
 from xenon_crow.baselines import DuelingDQNAgent
-from xenon_crow.common import BasicBuffer, D3QNTrainer
+from xenon_crow.common import BasicBuffer
 from utils import GymDataHandler
 
 sns.set_style("white")
@@ -42,7 +44,7 @@ def run(env, agent, max_episodes, max_steps):
 
         for _ in range(max_steps):
             action, info = agent.get_action(FloatTensor(state))
-            next_state, reward, done, trunc, info = env.step(action)
+            next_state, reward, done, trunc, _ = env.step(action)
             agent.replay_buffer.push(
                 (state, action, reward, next_state, done or trunc, info)
             )
@@ -52,23 +54,24 @@ def run(env, agent, max_episodes, max_steps):
                 agent.update()
 
             if done or trunc:
-                episode_rewards.append(episode_reward)
                 print(f"[INFO]: Episode {episode}: {episode_reward}")
                 break
 
             state = next_state
+        
+        episode_rewards.append(episode_reward)
 
     return episode_rewards
 
 
-hist = run(ENV, agent, MAX_EP, MAX_STEPS)
+hist = run(ENV, agent, 10, 10)
 
 fig, ax = plt.subplots(1, 1, figsize=(20, 8))
 x = np.arange(1, len(hist) + 1)
-sns.lineplot(y=hist, x=x, color="k", linewidth=1, ax=ax[0])
+sns.lineplot(y=hist, x=x, color="k", linewidth=1, ax=ax)
 
-ax[0].set_ylabel("Cumulative Reward")
-ax[0].set_xlabel("Episodes")
-ax[0].grid(visible=True, axis="y", linestyle="--")
+ax.set_ylabel("Cumulative Reward")
+ax.set_xlabel("Episodes")
+ax.grid(visible=True, axis="y", linestyle="--")
 
 fig.savefig("LunarLander-v2_D3QN.png")

@@ -20,12 +20,12 @@ class GymDataHandler(object):
         """
         batch = np.array(batch, dtype=object)
 
-        states = torch.stack(batch[:, 0]).to(torch.float32)
-        next_states = torch.stack(batch[:, 3]).to(torch.float32)
+        states = torch.tensor(np.stack(batch[:, 0])).to(torch.float32)
+        next_states = torch.tensor(np.stack(batch[:, 3])).to(torch.float32)
 
-        action_hist = batch[:, 1, None].astype(torch.int64)
-        rewards = torch.FloatTensor(batch[:, 2, None], requires_grad=False)
-        not_finals = torch.logical_not(batch[:, -2, None]).to(torch.float32)
-
-        return states, action_hist, rewards, next_states, not_finals, batch[:, -1]
+        action_hist = torch.tensor(batch[:, 1, None].astype(np.int64))
+        rewards = torch.tensor(batch[:, 2, None].astype(np.float32))
+        not_finals = np.logical_not(batch[:, -2, None].astype(np.ubyte))
+        not_finals = torch.tensor(not_finals)
+        return states, action_hist, rewards, next_states, not_finals, list(batch[:, -1])
     
