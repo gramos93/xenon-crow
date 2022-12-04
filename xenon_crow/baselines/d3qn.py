@@ -1,8 +1,6 @@
-from random import choice
-from copy import deepcopy
 import numpy as np
 import torch
-from torch.nn import Conv2d, Linear, Module, ModuleDict, MSELoss, ReLU, Sequential
+from torch.nn import Conv2d, Linear, Module, ModuleDict, MSELoss, ReLU, Sequential, SiLU
 
 
 class MplDuelingDQN(Module):
@@ -12,13 +10,16 @@ class MplDuelingDQN(Module):
         self.output_dim = output_dim
 
         self.feauture_layer = Sequential(
-            Linear(self.input_dim[0], 128), ReLU(), Linear(128, 128), ReLU()
+            Linear(self.input_dim[0], 64),
+            SiLU(),
+            Linear(64, 128),
+            SiLU(),
+            Linear(128, 128),
+            SiLU(),
         )
-
-        self.value_stream = Sequential(Linear(128, 128), ReLU(), Linear(128, 1))
-
+        self.value_stream = Sequential(Linear(128, 128), SiLU(), Linear(128, 1))
         self.advantage_stream = Sequential(
-            Linear(128, 128), ReLU(), Linear(128, self.output_dim)
+            Linear(128, 128), SiLU(), Linear(128, self.output_dim)
         )
 
     def forward(self, state):
@@ -79,8 +80,8 @@ class DuelingDQNAgent(Module):
         buffer,
         learning_rate=3e-4,
         gamma=0.99,
-        tau=0.9,
-        epsilon = 0.99,
+        tau=0.001,
+        epsilon=0.99,
         format="conv",
     ):
         super(DuelingDQNAgent, self).__init__()
@@ -88,7 +89,6 @@ class DuelingDQNAgent(Module):
         self.gamma = gamma
         self.tau = tau
         self.epsilon = epsilon
-        self._step = 0
         self.replay_buffer = buffer
         model_class = ConvDuelingDQN if format == "conv" else MplDuelingDQN
         self.model = ModuleDict(
@@ -97,7 +97,9 @@ class DuelingDQNAgent(Module):
                 "target": model_class(env.observation_space.shape, env.action_space.n),
             }
         )
-        self.optimizer = torch.optim.Adam(self.model["local"].parameters(), lr=learning_rate)
+        self.optimizer = torch.optim.Adam(
+            self.model["local"].parameters(), lr=learning_rate
+        )
         self.MSE_loss = MSELoss()
 
         self._train = True
@@ -110,33 +112,33 @@ class DuelingDQNAgent(Module):
     def set_train(self, mode: bool = True):
         self._train = mode
 
-    def __update_epsilon(self):
+    def update_epsilon(self):
         self.epsilon *= 0.99
 
     def __update_target_model(self):
-        
-        q_model_theta = self.model['local'].state_dict()
-        target_model_theta = self.model['target'].state_dict()
-        for w in q_model_theta:
-            target_model_theta[w] = (1 - self.tau) * target_model_theta[w] + self.tau * q_model_theta[w]
+        local_weights = self.model["local"].state_dict()
+        target_weights = self.model["target"].state_dict()
+        for w in local_weights:
+            target_weights[w] = (1 - self.tau) * \
+                target_weights[w] + self.tau * local_weights[w]
 
-        self.model['target'].load_state_dict(target_model_theta, strict=True)
-    
+        self.model["target"].load_state_dict(target_weights, strict=True)
+
     @torch.no_grad()
     def get_action(self, state):
         if np.random.random() <= self.epsilon:
             return self.env.action_space.sample()
-            
-        qvals = self.model['local'](state)
+
+        qvals = self.model["local"](state)
         return np.argmax(qvals.cpu().detach().numpy())
 
     def compute_loss(self, batch):
         states, actions, rewards, next_states, dones = batch
 
-        with torch.set_grad_enabled(self.train):
-            curr_Q = self.model['local'](states).gather(1, actions)
+        with torch.set_grad_enabled(self._train):
+            curr_Q = self.model["local"](states).gather(1, actions)
 
-            max_next_Q = self.model['target'](next_states).argmax(1, keepdims=True)
+            max_next_Q = self.model["target"](next_states).argmax(1, keepdims=True)
 
             expected_Q = rewards + self.gamma * max_next_Q * dones
             loss = self.MSE_loss(curr_Q, expected_Q)
@@ -150,4 +152,3 @@ class DuelingDQNAgent(Module):
         loss.backward()
         self.optimizer.step()
         self.__update_target_model()
-        self.__update_epsilon()

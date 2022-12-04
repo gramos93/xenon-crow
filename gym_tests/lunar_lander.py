@@ -26,7 +26,7 @@ MAX_STEPS = 1000
 GAMMA = 1.0
 LR = 1e-3
 TAU = 0.001
-EPS = 0.9
+EPS = 1.0
 
 BUFFER_SIZE = 1e5
 BATCH_SIZE = 64
@@ -76,8 +76,9 @@ def run(env, agent, max_episodes, max_steps):
 
             state = next_state
         
-        progress_bar.set_postfix(reward = episode_reward, refresh=True)
+        agent.update_epsilon()
         episode_rewards.append(episode_reward)
+        progress_bar.set_postfix(reward = episode_reward, refresh=True)
 
     return episode_rewards
 
