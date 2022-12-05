@@ -26,6 +26,6 @@ class GymDataHandler(object):
         action_hist = torch.tensor(batch[:, 1, None].astype(np.int64))
         rewards = torch.tensor(batch[:, 2, None].astype(np.float32))
         not_finals = np.logical_not(batch[:, -1, None].astype(np.ubyte))
-        not_finals = torch.tensor(not_finals)
+        not_finals = torch.tensor(not_finals).float()
         return states, action_hist, rewards, next_states, not_finals
     

@@ -12,7 +12,7 @@ import seaborn as sns
 
 from tqdm.auto import trange
 
-from torch import FloatTensor
+from torch import tensor, manual_seed, float32
 from xenon_crow.baselines import DuelingDQNAgent
 from xenon_crow.common import BasicBuffer
 from utils import GymDataHandler
@@ -20,14 +20,14 @@ from utils import GymDataHandler
 sns.set_style("white")
 
 ENV = gym.make("LunarLander-v2")
-MAX_EP = 2000
-MAX_STEPS = 1000
+MAX_EP = 1200
 
-GAMMA = 1.0
-LR = 1e-3
-TAU = 0.001
+GAMMA = 0.99
+LR = 1e-4
+TAU = 1e-3
 EPS = 1.0
 
+TRAIN_INTER = 4
 BUFFER_SIZE = 1e5
 BATCH_SIZE = 64
 
@@ -37,17 +37,18 @@ replay_buffer = BasicBuffer(
     max_size=BUFFER_SIZE, batch_size=BATCH_SIZE, data_handler=GymDataHandler()
 )
 agent = DuelingDQNAgent(
-    ENV,
-    replay_buffer,
-    LR,
-    GAMMA,
-    TAU,
-    EPS,
-    "mlp"
+    input_dim=ENV.observation_space.shape[0],
+    output_dim=ENV.action_space.n,
+    buffer=replay_buffer,
+    learning_rate=LR,
+    gamma=GAMMA,
+    tau=TAU,
+    epsilon=EPS,
+    format="mlp"
 )
 
 
-def run(env, agent, max_episodes, max_steps):
+def run(env, agent, max_episodes, update_inter):
     episode_rewards = []
     progress_bar = trange(
         max_episodes,
@@ -57,33 +58,37 @@ def run(env, agent, max_episodes, max_steps):
         leave=True
     )
     for _ in progress_bar:
-        state, _ = env.reset()
-        episode_reward = 0.0
+        step, reward = 1, 0.0
+        terminated = False
+        state = env.reset()
 
-        for _ in range(max_steps):
-            action = agent.get_action(FloatTensor(state))
-            next_state, reward, done, trunc, _ = env.step(action)
+        while not terminated:
+            action = agent.get_action(tensor(state, dtype=float32).unsqueeze(0))
+            next_state, r, terminated, *_ = env.step(action)
+
             agent.replay_buffer.push(
-                (state, action, reward, next_state, done or trunc)
+                (state, action, r, next_state, terminated)
             )
-            episode_reward += reward
+            reward += r
 
-            if agent.replay_buffer.ready():
+            if agent.replay_buffer.ready() and step % update_inter == 0 :
                 agent.update()
 
-            if done or trunc:
-                break
-
+            step += 1
             state = next_state
         
         agent.update_epsilon()
-        episode_rewards.append(episode_reward)
-        progress_bar.set_postfix(reward = episode_reward, refresh=True)
+        episode_rewards.append(reward)
+        progress_bar.set_postfix(reward=reward, epsilon=agent.epsilon, refresh=True)
 
     return episode_rewards
 
+seed = 42
+ENV.seed = seed
+np.random.seed(seed)
+manual_seed(seed)
 
-hist = run(ENV, agent, MAX_EP, MAX_STEPS)
+hist = run(ENV, agent, MAX_EP, TRAIN_INTER)
 
 fig, ax = plt.subplots(1, 1, figsize=(20, 8))
 x = np.arange(1, len(hist) + 1)
@@ -94,3 +99,4 @@ ax.set_xlabel("Episodes")
 ax.grid(visible=True, axis="y", linestyle="--")
 
 fig.savefig("LunarLander-v2_D3QN.png")
+ 

@@ -1,6 +1,7 @@
 import numpy as np
 import torch
-from torch.nn import Conv2d, Linear, Module, ModuleDict, MSELoss, ReLU, Sequential, SiLU
+from torch.nn import Conv2d, Linear, Module, ModuleDict, ReLU, Sequential, SiLU
+from torch.nn.functional import mse_loss
 
 
 class MplDuelingDQN(Module):
@@ -10,7 +11,7 @@ class MplDuelingDQN(Module):
         self.output_dim = output_dim
 
         self.feauture_layer = Sequential(
-            Linear(self.input_dim[0], 64),
+            Linear(self.input_dim, 64),
             SiLU(),
             Linear(64, 128),
             SiLU(),
@@ -21,6 +22,18 @@ class MplDuelingDQN(Module):
         self.advantage_stream = Sequential(
             Linear(128, 128), SiLU(), Linear(128, self.output_dim)
         )
+
+    def get_weights(self):
+        return self.state_dict()
+
+    def get_weight_copies(self):
+        weights = self.get_weights()
+        for k in weights.keys():
+            weights[k] = weights[k].cpu().clone()
+        return weights
+
+    def set_weights(self, weights, strict=True):
+        return self.load_state_dict(weights, strict=strict)
 
     def forward(self, state):
         features = self.feauture_layer(state)
@@ -55,6 +68,18 @@ class ConvDuelingDQN(Module):
             Linear(self.fc_input_dim, 128), ReLU(), Linear(128, self.output_dim)
         )
 
+    def get_weights(self):
+        return self.state_dict()
+
+    def get_weight_copies(self):
+        weights = self.get_weights()
+        for k in weights.keys():
+            weights[k] = weights[k].cpu().clone()
+        return weights
+
+    def set_weights(self, weights, strict=True):
+        return self.load_state_dict(weights, strict=strict)
+
     def forward(self, state):
         features = self.conv(state)
         features = features.view(features.size(0), -1)
@@ -76,79 +101,75 @@ class ConvDuelingDQN(Module):
 class DuelingDQNAgent(Module):
     def __init__(
         self,
-        env,
+        input_dim,
+        output_dim,
         buffer,
         learning_rate=3e-4,
         gamma=0.99,
-        tau=0.001,
-        epsilon=0.99,
+        tau=1e-3,
+        epsilon=1.0,
         format="conv",
     ):
         super(DuelingDQNAgent, self).__init__()
-        self.env = env
         self.gamma = gamma
         self.tau = tau
         self.epsilon = epsilon
         self.replay_buffer = buffer
+        self.actions = np.arange(0, output_dim, 1)
+
         model_class = ConvDuelingDQN if format == "conv" else MplDuelingDQN
         self.model = ModuleDict(
             {
-                "local": model_class(env.observation_space.shape, env.action_space.n),
-                "target": model_class(env.observation_space.shape, env.action_space.n),
+                "local": model_class(input_dim, output_dim),
+                "target": model_class(input_dim, output_dim),
             }
         )
         self.optimizer = torch.optim.Adam(
             self.model["local"].parameters(), lr=learning_rate
         )
-        self.MSE_loss = MSELoss()
-
-        self._train = True
-
-    @property
-    def train(self):
-        return self._train
-
-    @train.setter
-    def set_train(self, mode: bool = True):
-        self._train = mode
 
     def update_epsilon(self):
         self.epsilon *= 0.99
 
     def __update_target_model(self):
-        local_weights = self.model["local"].state_dict()
-        target_weights = self.model["target"].state_dict()
-        for w in local_weights:
-            target_weights[w] = (1 - self.tau) * \
-                target_weights[w] + self.tau * local_weights[w]
 
-        self.model["target"].load_state_dict(target_weights, strict=True)
+        new_weights = {}
+        local_weights = self.model["local"].get_weight_copies()
+        target_weights = self.model["target"].get_weight_copies()
+        for w in target_weights:
+            new_weights[w] = (1 - self.tau) * target_weights[
+                w
+            ] + self.tau * local_weights[w]
 
-    @torch.no_grad()
+        self.model["target"].set_weights(new_weights)
+
     def get_action(self, state):
-        if np.random.random() <= self.epsilon:
-            return self.env.action_space.sample()
-
-        qvals = self.model["local"](state)
-        return np.argmax(qvals.cpu().detach().numpy())
+        if np.random.uniform(0, 1) < self.epsilon:
+            return np.random.choice(self.actions)
+        else:
+            qvals = self.model["local"](state)
+            return torch.argmax(qvals, dim=1).item()
 
     def compute_loss(self, batch):
-        states, actions, rewards, next_states, dones = batch
+        states, actions, rewards, next_states, not_dones = batch
 
-        with torch.set_grad_enabled(self._train):
-            curr_Q = self.model["local"](states).gather(1, actions)
+        curr_Q = self.model["local"](states).gather(1, actions)
+        next_Q = self.model["target"](next_states)
+        target_Q = rewards + self.gamma * next_Q * not_dones
 
-            max_next_Q = self.model["target"](next_states).argmax(1, keepdims=True)
-
-            expected_Q = rewards + self.gamma * max_next_Q * dones
-            loss = self.MSE_loss(curr_Q, expected_Q)
-        return loss
+        return mse_loss(
+            curr_Q, target_Q.max(1, keepdims=True).values
+        )
 
     def update(self):
-        self.optimizer.zero_grad()
 
         batch = self.replay_buffer.sample()
+
+        self.model["local"].train(True)
+        self.optimizer.zero_grad()
+
         loss = self.compute_loss(batch)
         loss.backward()
         self.optimizer.step()
+
         self.__update_target_model()
