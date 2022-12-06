@@ -110,6 +110,6 @@ ray_results/*
 pyrightconfig.json
 .python-version
 
-
+*.pth
 include/
 include/TIPlib

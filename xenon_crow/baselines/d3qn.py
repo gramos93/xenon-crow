@@ -118,43 +118,40 @@ class DuelingDQNAgent(Module):
         self.actions = np.arange(0, output_dim, 1)
 
         model_class = ConvDuelingDQN if format == "conv" else MplDuelingDQN
-        self.model = ModuleDict(
-            {
-                "local": model_class(input_dim, output_dim),
-                "target": model_class(input_dim, output_dim),
-            }
-        )
+        self.model_local = model_class(input_dim, output_dim)
+        self.model_target = model_class(input_dim, output_dim)
+        
         self.optimizer = torch.optim.Adam(
-            self.model["local"].parameters(), lr=learning_rate
+            self.model_local.parameters(), lr=learning_rate
         )
 
-    def update_epsilon(self):
-        self.epsilon *= 0.99
+    def update_epsilon(self, eps):
+        self.epsilon = max(0.1, eps)
 
     def __update_target_model(self):
 
         new_weights = {}
-        local_weights = self.model["local"].get_weight_copies()
-        target_weights = self.model["target"].get_weight_copies()
+        local_weights = self.model_local.state_dict()
+        target_weights = self.model_target.state_dict()
         for w in target_weights:
             new_weights[w] = (1 - self.tau) * target_weights[
                 w
             ] + self.tau * local_weights[w]
 
-        self.model["target"].set_weights(new_weights)
+        self.model_target.set_weights(new_weights)
 
     def get_action(self, state):
         if np.random.uniform(0, 1) < self.epsilon:
             return np.random.choice(self.actions)
         else:
-            qvals = self.model["local"](state)
+            qvals = self.model_local(state)
             return torch.argmax(qvals, dim=1).item()
 
     def compute_loss(self, batch):
         states, actions, rewards, next_states, not_dones = batch
 
-        curr_Q = self.model["local"](states).gather(1, actions)
-        next_Q = self.model["target"](next_states)
+        curr_Q = self.model_local(states).gather(1, actions)
+        next_Q = self.model_target(next_states)
         target_Q = rewards + self.gamma * next_Q * not_dones
 
         return mse_loss(
@@ -164,8 +161,6 @@ class DuelingDQNAgent(Module):
     def update(self):
 
         batch = self.replay_buffer.sample()
-
-        self.model["local"].train(True)
         self.optimizer.zero_grad()
 
         loss = self.compute_loss(batch)
