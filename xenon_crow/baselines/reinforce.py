@@ -1,7 +1,7 @@
 import torch
 from torch.distributions import Categorical
 from torch.nn import Conv2d, Linear, Module, ReLU, Sequential, SiLU, LogSoftmax
-
+from ..common import ReinforceBuffer, ReinforceHandler
 
 class MplReinforce(Module):
     def __init__(self, input_dim, output_dim):
@@ -21,18 +21,6 @@ class MplReinforce(Module):
             Linear(128, 128), SiLU(), Linear(128, self.output_dim), LogSoftmax(dim=1)
         )
         self.value_layer = Sequential(Linear(128, 128), SiLU(), Linear(128, 1))
-
-    def get_weights(self):
-        return self.state_dict()
-
-    def get_weight_copies(self):
-        weights = self.get_weights()
-        for k in weights.keys():
-            weights[k] = weights[k].cpu().clone()
-        return weights
-
-    def set_weights(self, weights, strict=True):
-        return self.load_state_dict(weights, strict=strict)
 
     def forward(self, state):
         features = self.feauture_layer(state)
@@ -95,12 +83,13 @@ class ReinforceAgent(Module):
         output_dim,
         learning_rate=3e-4,
         gamma=0.99,
-        buffer=None,
         format="conv",
     ):
+        # REF: https://github.com/Nithin-Holla/reinforce_baselines
         super(ReinforceAgent, self).__init__()
         self.gamma = gamma
-        self.replay_buffer = buffer
+        self._replay_buffer = ReinforceBuffer(data_handler=ReinforceHandler())
+        self._eps = torch.finfo(torch.float32).eps.item()
         model_class = ConvReinforce if format == "conv" else MplReinforce
         self.model = model_class(input_dim, output_dim)
         self.optimizer = torch.optim.Adam(
@@ -108,26 +97,29 @@ class ReinforceAgent(Module):
         )
 
     def get_action(self, state):
-        probs = self.model(state)
+        probs, value = self.model(state)
         action_pool = Categorical(probs)
         action = action_pool.sample()
-        self.saved_log_probs.append(action_pool.log_prob(action))
-        return action.item()
+        log_prob = action_pool.log_prob(action)
+        return action.item(), log_prob, value
 
-    def compute_returns(self, rewards):
-        return rewards
+    def __compute_returns(self, rewards):
+        gammas = self.gamma ** (torch.arange(0, len(rewards), 1))
+        rewards = (rewards * gammas).cumsum()
+        # Use normilized rewards
+        return (rewards - rewards.mean()) / rewards.std()
 
-    def compute_loss(self, batch):
-        log_prob, baselines, rewards = batch
-        returns = self.calculate_returns(rewards)
+    def __compute_loss(self):
+        log_prob, baselines, rewards = self._replay_buffer.get_episode()
+        Gs = self.__compute_returns(rewards) - baselines
+        Gs /= Gs.abs().mean()
 
-        return 0
+        return -(Gs * log_prob).sum()
 
     def update(self):
 
-        batch = self.replay_buffer.sample()
         self.optimizer.zero_grad()
-
-        loss = self.compute_loss(batch)
+        loss = self.__compute_loss()
         loss.backward()
         self.optimizer.step()
+        self._replay_buffer.reset()

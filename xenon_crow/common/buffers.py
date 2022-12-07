@@ -26,12 +26,9 @@ class ReinforceBuffer(object):
         self.__buffer = list()
         self.__data_handler = data_handler
 
-    def __iter__(self):
-        return  self
+    def get_episode(self):
+        return self.__data_handler(self.__buffer)
         
-    def __next__(self):
-        for replay in self.__buffer:
-            yield self.__data_handler(replay)
 
     def push(self, data):
         self.__buffer.append(data)

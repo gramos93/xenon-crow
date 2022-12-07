@@ -1,2 +1,2 @@
-from .trainer import D3QNTrainer
-from .buffers import RandomBuffer, LinearBuffer
+from .trainer import D3QNTrainer, ReinforceTrainer
+from .buffers import RandomBuffer, ReinforceBuffer

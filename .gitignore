@@ -81,7 +81,7 @@ pyrightconfig.json
 
 # exclude data formats from source control by default
 **.JPG
-**.png
+# **.png
 **.jpeg
 **.jpg
 **.dxf
