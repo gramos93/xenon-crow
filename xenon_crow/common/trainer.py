@@ -1,39 +1,45 @@
-import torch
-
+from torch import tensor, float32
+from tqdm.auto import trange
 
 class D3QNTrainer(object):
-    def __init__(self, device) -> None:
+    def __init__(self) -> None:
         self.logger = self.__init_logger()
-        self.device = torch.device(device)
 
     def __init_logger(self):
         return None
 
-    def run(self, env, agent, max_episodes, max_steps):
+    def run(env, agent, max_episodes, update_inter):
         episode_rewards = []
-        agent = agent.to(self.device)
-        env = env.to(self.device)
+        progress_bar = trange(
+            max_episodes,
+            ncols=150,
+            desc="Training",
+            position=0,
+            leave=True
+        )
+        for _ in progress_bar:
+            step, reward = 1, 0.0
+            terminated = False
+            state, _ = env.reset()
 
-        for episode in range(max_episodes):
-            state = env.reset()
-            episode_reward = 0.0
+            while not terminated:
+                action = agent.get_action(tensor(state, dtype=float32).unsqueeze(0))
+                next_state, r, done, trunc, *_ = env.step(action)
+                terminated = done or trunc
 
-            for step in range(max_steps):
-                action, info = agent.get_action(state)
-                next_state, reward, (done, trunc), info = env.step(action)
                 agent.replay_buffer.push(
-                    state, action, reward, next_state, done, info
+                    (state, action, r, next_state, terminated)
                 )
-                episode_reward += reward
+                reward += r
 
-                if agent.replay_buffer.ready():
+                if agent.replay_buffer.ready() and step % update_inter == 0 :
                     agent.update()
 
-                if done or trunc:
-                    episode_rewards.append(episode_reward)
-                    print(f"[INFO]: Episode {episode}: {episode_reward}")
-                    break
-
+                step += 1
                 state = next_state
+            
+            agent.update_epsilon(agent.epsilon*0.99)
+            episode_rewards.append(reward)
+            progress_bar.set_postfix(reward=reward, epsilon=agent.epsilon, refresh=True)
 
         return episode_rewards

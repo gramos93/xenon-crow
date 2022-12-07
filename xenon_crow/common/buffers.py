@@ -27,6 +27,9 @@ class ReinforceBuffer(object):
         self.__data_handler = data_handler
 
     def __iter__(self):
+        return  self
+        
+    def __next__(self):
         for replay in self.__buffer:
             yield self.__data_handler(replay)
 
