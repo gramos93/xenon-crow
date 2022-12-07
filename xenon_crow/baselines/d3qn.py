@@ -126,8 +126,11 @@ class DuelingDQNAgent(Module):
         )
 
     def update_epsilon(self, eps):
-        self.epsilon = max(0.1, eps)
-
+        if eps > 0.:
+            self.epsilon = max(0.1, eps)
+        else:
+            self.epsilon = 0.
+            
     def __update_target_model(self):
 
         new_weights = {}

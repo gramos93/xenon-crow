@@ -112,7 +112,6 @@ class ReinforceAgent(Module):
     def __compute_loss(self):
         log_prob, baselines, rewards = self._replay_buffer.get_episode()
         Gs = self.__compute_returns(rewards) - baselines
-        Gs /= Gs.abs().mean()
 
         return -(Gs * log_prob).sum()
 

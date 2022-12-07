@@ -1,10 +1,16 @@
 from typing import List, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 import torch
+from matplotlib import animation
+
+sns.set_style("white")
+
 
 class GymDataHandler(object):
-    def __call__(self, batch: Tuple) -> List:
+    def __call__(self, batch: Tuple) -> Tuple:
         """
         Input :
             - batch, a list of n=batch_size elements from the replay buffer
@@ -28,4 +34,53 @@ class GymDataHandler(object):
         not_finals = np.logical_not(batch[:, -1, None].astype(np.ubyte))
         not_finals = torch.tensor(not_finals).float()
         return states, action_hist, rewards, next_states, not_finals
-    
+
+
+class GymDataHandlerReinforce(object):
+    def __call__(self, batch: List) -> Tuple:
+        """
+        Input :
+            - batch, a list of n=batch_size elements from the replay buffer
+            - target_network, the target network to compute the one-step lookahead target
+            - gamma, the discount factor
+
+        Returns :
+            - states, a numpy array of size (batch_size, state_dim) containing the states in the batch
+            - (actions, targets) : where actions and targets both
+                        have the shape (batch_size, ). Actions are the
+                        selected actions according to the target network
+                        and targets are the one-step lookahead targets.
+        """
+        batch = np.array(batch, dtype=object)
+        log_probs = torch.tensor(np.stack(batch[:, 0, None])).to(torch.float32)
+        rewards = torch.tensor(batch[:, 1, None].astype(np.float32))
+        values = torch.tensor(np.stack(batch[:, 3, None])).to(torch.float32)
+
+        return log_probs, rewards, values
+
+
+def plot_and_save(hist, figname):
+    fig, ax = plt.subplots(1, 1, figsize=(20, 8))
+    x = np.arange(1, len(hist) + 1)
+    sns.lineplot(y=hist, x=x, color="k", linewidth=1, ax=ax)
+
+    ax.set_ylabel("Cumulative Reward")
+    ax.set_xlabel("Episodes")
+    ax.grid(visible=True, axis="y", linestyle="--")
+
+    fig.savefig(f"assets/{figname}")
+
+
+def save_frames_as_gif(frames, filename, path="./assets/"):
+
+    # Mess with this to change frame size
+    plt.figure(figsize=(frames[0].shape[1] / 72.0, frames[0].shape[0] / 72.0), dpi=72)
+
+    patch = plt.imshow(frames[0])
+    plt.axis("off")
+
+    def animate(i):
+        patch.set_data(frames[i])
+
+    anim = animation.FuncAnimation(plt.gcf(), animate, frames=len(frames), interval=50)
+    anim.save(path + filename, writer="ffmpeg", fps=60)
