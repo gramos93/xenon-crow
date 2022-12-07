@@ -15,7 +15,7 @@ from tqdm.auto import trange
 
 from torch import tensor, manual_seed, float32, save, load
 from xenon_crow.baselines import DuelingDQNAgent
-from xenon_crow.common import BasicBuffer
+from xenon_crow.common import RandomBuffer
 from utils import GymDataHandler
 
 sns.set_style("white")
@@ -34,7 +34,7 @@ BATCH_SIZE = 64
 
 DEVICE = "cpu"
 
-replay_buffer = BasicBuffer(
+replay_buffer = RandomBuffer(
     max_size=BUFFER_SIZE, batch_size=BATCH_SIZE, data_handler=GymDataHandler()
 )
 agent = DuelingDQNAgent(
@@ -110,7 +110,7 @@ save(agent.model_local.state_dict(), "./models/LunarLander_D3QN_Local.pth")
 # )
 agent.update_epsilon(0.)
 
-def save_frames_as_gif(frames, path='./assets', filename='D3QN-LunarLander.gif'):
+def save_frames_as_gif(frames, path='./assets/', filename='D3QN-LunarLander.gif'):
 
     #Mess with this to change frame size
     plt.figure(figsize=(frames[0].shape[1] / 72.0, frames[0].shape[0] / 72.0), dpi=72)
@@ -140,6 +140,6 @@ for t in range(1000):
         break    
     state = next_s
 
-print(f"Test reward {rewards}")
 ENV.close()
+print(f"Test reward {rewards}")
 save_frames_as_gif(frames)
