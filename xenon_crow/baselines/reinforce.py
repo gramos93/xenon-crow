@@ -9,7 +9,7 @@ class MplReinforce(Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
 
-        self.feauture_layer = Sequential(
+        self.feature_layer = Sequential(
             Linear(self.input_dim, 64),
             SiLU(),
             Linear(64, 128),
@@ -23,7 +23,7 @@ class MplReinforce(Module):
         self.value_layer = Sequential(Linear(128, 128), SiLU(), Linear(128, 1))
 
     def forward(self, state):
-        features = self.feauture_layer(state)
+        features = self.feature_layer(state)
         log_prob = self.policy_layer(features)
         value = self.value_layer(features)
         return log_prob, value
@@ -86,6 +86,7 @@ class ReinforceAgent(Module):
         format="conv",
     ):
         # REF: https://github.com/Nithin-Holla/reinforce_baselines
+        # https://github.com/pytorch/examples/blob/main/reinforcement_learning
         super(ReinforceAgent, self).__init__()
         self.gamma = gamma
         self._replay_buffer = ReinforceBuffer(data_handler=ReinforceHandler())

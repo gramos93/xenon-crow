@@ -53,10 +53,10 @@ class GymDataHandlerReinforce(object):
         """
         batch = np.array(batch, dtype=object)
         log_probs = torch.tensor(np.stack(batch[:, 0, None])).to(torch.float32)
-        rewards = torch.tensor(batch[:, 1, None].astype(np.float32))
-        values = torch.tensor(np.stack(batch[:, 3, None])).to(torch.float32)
+        values = torch.tensor(np.stack(batch[:, 1, None])).to(torch.float32)
+        rewards = torch.tensor(batch[:, 2, None].astype(np.float32))
 
-        return log_probs, rewards, values
+        return log_probs, values, rewards
 
 
 def plot_and_save(hist, figname):
