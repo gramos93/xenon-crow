@@ -21,7 +21,7 @@ manual_seed(seed)
 
 MAX_EP = 1200
 
-GAMMA = 0.9999
+GAMMA = 0.95
 LR = 1e-4
 
 replay_buffer = ReinforceBuffer(

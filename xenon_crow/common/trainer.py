@@ -65,8 +65,6 @@ class ReinforceTrainer(object):
 
             step += 1
             state = next_state
-            if step > 1000:
-                terminated = True
 
         return reward
 
@@ -75,11 +73,17 @@ class ReinforceTrainer(object):
         progress_bar = trange(
             max_episodes, ncols=150, desc="Training", position=0, leave=True
         )
+        ma_reward = -200
         for _ in progress_bar:
             reward = ReinforceTrainer.generate_episode(env, agent)
             episode_rewards.append(reward)
             loss = agent.update()
-            progress_bar.set_postfix(reward=reward, loss=loss, refresh=True)
+            ma_reward = 0.05 * reward + (1 - 0.05) * ma_reward
+            progress_bar.set_postfix(ma_reward=ma_reward, reward=reward, loss=loss, refresh=True)
+
+            if ma_reward > env.spec.reward_threshold:
+                print("Solved! Running reward: {}".format(ma_reward))
+            break
 
         return episode_rewards
 
