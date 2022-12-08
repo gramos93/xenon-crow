@@ -29,6 +29,8 @@ class ReinforceBuffer(object):
     def get_episode(self):
         return self.__data_handler(self.__buffer)
         
+    def __getitem__(self, index):
+        return self.__buffer[index]
 
     def push(self, data):
         self.__buffer.append(data)

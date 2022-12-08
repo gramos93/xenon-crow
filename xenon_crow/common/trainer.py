@@ -60,26 +60,26 @@ class ReinforceTrainer(object):
             next_state, r, done, trunc, *_ = env.step(action)
             terminated = done or trunc
 
-            agent.replay_buffer.push((log_prob, value, r))
             reward += r
-
-            if agent.replay_buffer.ready():
-                agent.update()
+            agent.replay_buffer.push((log_prob, value, r))
 
             step += 1
             state = next_state
+            if step > 1000:
+                terminated = True
 
         return reward
 
-    def run(env, agent, max_episodes):
+    def run(self, env, agent, max_episodes):
         episode_rewards = []
         progress_bar = trange(
             max_episodes, ncols=150, desc="Training", position=0, leave=True
         )
         for _ in progress_bar:
-            episode_rewards.append(ReinforceTrainer.generate_episode(env, agent))
-            agent.update()
-            progress_bar.set_postfix(reward=episode_rewards[-1], refresh=True)
+            reward = ReinforceTrainer.generate_episode(env, agent)
+            episode_rewards.append(reward)
+            loss = agent.update()
+            progress_bar.set_postfix(reward=reward, loss=loss, refresh=True)
 
         return episode_rewards
 
@@ -128,7 +128,7 @@ class A2CTrainer(object):
             reward, entropy = ReinforceTrainer.generate_episode(env, agent)
 
             episode_rewards.append(reward)
-            agent.update(entropy)
-            progress_bar.set_postfix(reward=reward, refresh=True)
+            loss = agent.update(entropy)
+            progress_bar.set_postfix(reward=reward, loss=loss, refresh=True)
 
         return episode_rewards

@@ -51,11 +51,10 @@ class GymDataHandlerReinforce(object):
                         selected actions according to the target network
                         and targets are the one-step lookahead targets.
         """
-        batch = np.array(batch, dtype=object)
-        log_probs = torch.tensor(np.stack(batch[:, 0, None])).to(torch.float32)
-        values = torch.tensor(np.stack(batch[:, 1, None])).to(torch.float32)
-        rewards = torch.tensor(batch[:, 2, None].astype(np.float32))
-
+        log_probs = [b[0] for b in batch]
+        values = [b[1] for b in batch]
+        rewards = [b[2] for b in batch]
+        
         return log_probs, values, rewards
 
 

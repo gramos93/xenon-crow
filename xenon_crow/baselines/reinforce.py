@@ -1,7 +1,10 @@
+from collections import deque
 import torch
 from torch.distributions import Categorical
-from torch.nn import Conv2d, Linear, Module, ReLU, Sequential, SiLU, LogSoftmax
-from ..common import ReinforceBuffer, ReinforceHandler
+from torch.nn import Conv2d, Linear, Module, ReLU, Sequential, SiLU, Softmax, Dropout
+from torch.nn.functional import smooth_l1_loss
+from ..common import ReinforceBuffer
+
 
 class MplReinforce(Module):
     def __init__(self, input_dim, output_dim):
@@ -10,15 +13,19 @@ class MplReinforce(Module):
         self.output_dim = output_dim
 
         self.feature_layer = Sequential(
-            Linear(self.input_dim, 64),
+            Linear(input_dim, 64),
             SiLU(),
             Linear(64, 128),
             SiLU(),
             Linear(128, 128),
             SiLU(),
+            # Dropout(0.6)
         )
         self.policy_layer = Sequential(
-            Linear(128, 128), SiLU(), Linear(128, self.output_dim), LogSoftmax(dim=1)
+            Linear(128, 128), 
+            SiLU(),
+            Linear(128, output_dim),
+            Softmax(dim=1)
         )
         self.value_layer = Sequential(Linear(128, 128), SiLU(), Linear(128, 1))
 
@@ -47,7 +54,7 @@ class ConvReinforce(Module):
         self.value_stream = Sequential(
             Linear(self.fc_input_dim, 128), ReLU(), Linear(128, self.output_dim)
         )
-        self.activation = LogSoftmax(dim=1)
+        self.activation = Softmax(dim=1)
 
     def get_weights(self):
         return self.state_dict()
@@ -83,19 +90,18 @@ class ReinforceAgent(Module):
         output_dim,
         learning_rate=3e-4,
         gamma=0.99,
+        buffer=None,
         format="conv",
     ):
         # REF: https://github.com/Nithin-Holla/reinforce_baselines
         # https://github.com/pytorch/examples/blob/main/reinforcement_learning
         super(ReinforceAgent, self).__init__()
         self.gamma = gamma
-        self._replay_buffer = ReinforceBuffer(data_handler=ReinforceHandler())
-        self._eps = torch.finfo(torch.float32).eps.item()
+        self.replay_buffer = buffer if buffer is not None else ReinforceBuffer()
+        self._eps = torch.finfo(torch.float32).eps
         model_class = ConvReinforce if format == "conv" else MplReinforce
         self.model = model_class(input_dim, output_dim)
-        self.optimizer = torch.optim.Adam(
-            self.model_local.parameters(), lr=learning_rate
-        )
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
 
     def get_action(self, state):
         probs, value = self.model(state)
@@ -105,16 +111,25 @@ class ReinforceAgent(Module):
         return action.item(), log_prob, value
 
     def __compute_returns(self, rewards):
-        gammas = self.gamma ** (torch.arange(0, len(rewards), 1))
-        rewards = (rewards * gammas).cumsum()
+        returns = deque(maxlen=len(rewards))
+        R = 0
+        for r in reversed(rewards):
+            R = r + self.gamma * R
+            returns.appendleft(R)
+
+        rewards = torch.tensor(returns)
         # Use normilized rewards
-        return (rewards - rewards.mean()) / rewards.std()
+        return (rewards - rewards.mean()) / (rewards.std() + self._eps)
+        # return 1.-(rewards - rewards.min()) / (rewards.max() - rewards.min())
 
     def __compute_loss(self):
-        log_prob, baselines, rewards = self._replay_buffer.get_episode()
-        Gs = self.__compute_returns(rewards) - baselines
+        policy_loss = []
+        log_prob, _, rewards = self.replay_buffer.get_episode()
+        Gs = self.__compute_returns(rewards) 
+        for log_prob, R in zip(log_prob, Gs):
+            policy_loss.append(-log_prob * R)
 
-        return -(Gs * log_prob).sum()
+        return torch.cat(policy_loss).sum()
 
     def update(self):
 
@@ -122,4 +137,6 @@ class ReinforceAgent(Module):
         loss = self.__compute_loss()
         loss.backward()
         self.optimizer.step()
-        self._replay_buffer.reset()
+        self.replay_buffer.reset()
+
+        return loss.item()
