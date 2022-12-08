@@ -1,8 +1,7 @@
 from collections import deque
 import torch
 from torch.distributions import Categorical
-from torch.nn import Conv2d, Linear, Module, ReLU, Sequential, SiLU, Softmax, Dropout
-from torch.nn.functional import smooth_l1_loss
+from torch.nn import Conv2d, Linear, Module, ReLU, Sequential, SiLU, Softmax, LayerNorm
 from ..common import ReinforceBuffer
 
 
@@ -14,17 +13,21 @@ class MplReinforce(Module):
 
         self.feature_layer = Sequential(
             Linear(input_dim, 64),
+            LayerNorm(64),
             SiLU(),
             Linear(64, 128),
+            LayerNorm(128),
             SiLU(),
             Linear(128, 128),
+            LayerNorm(128),
             SiLU(),
             # Dropout(0.6)
         )
         self.policy_layer = Sequential(
             Linear(128, 128), 
-            SiLU(),
-            Linear(128, output_dim),
+            LayerNorm(128),
+            SiLU(), 
+            Linear(128, output_dim), 
             Softmax(dim=1)
         )
         self.value_layer = Sequential(Linear(128, 128), SiLU(), Linear(128, 1))
@@ -119,14 +122,15 @@ class ReinforceAgent(Module):
 
         rewards = torch.tensor(returns)
         # Use normilized rewards
+        # return rewards
         return (rewards - rewards.mean()) / (rewards.std() + self._eps)
-        # return 1.-(rewards - rewards.min()) / (rewards.max() - rewards.min())
+        # return (rewards - rewards.min()) / (rewards.max() - rewards.min())
 
     def __compute_loss(self):
         policy_loss = []
-        log_prob, _, rewards = self.replay_buffer.get_episode()
-        Gs = self.__compute_returns(rewards) 
-        for log_prob, R in zip(log_prob, Gs):
+        log_prob, values, rewards = self.replay_buffer.get_episode()
+        Gs = self.__compute_returns(rewards)
+        for log_prob, R, val in zip(log_prob, Gs, values):
             policy_loss.append(-log_prob * R)
 
         return torch.cat(policy_loss).sum()

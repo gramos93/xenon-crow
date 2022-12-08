@@ -21,9 +21,8 @@ manual_seed(seed)
 
 MAX_EP = 1200
 
-GAMMA = 0.99
-LR = 1e-3
-BATCH_SIZE = 64
+GAMMA = 0.9999
+LR = 1e-4
 
 replay_buffer = ReinforceBuffer(
     data_handler=GymDataHandlerReinforce()
@@ -50,7 +49,7 @@ rewards = 0
 for t in range(1000):
     # Render to frames buffer
     frames.append(ENV.render())
-    action = agent.get_action(tensor(state, dtype=float32).unsqueeze(0))
+    action, *_ = agent.get_action(tensor(state, dtype=float32).unsqueeze(0))
     next_s, r, done, trunc, _ = ENV.step(action)
     rewards += r
 
