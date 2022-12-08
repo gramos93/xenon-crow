@@ -9,7 +9,7 @@ class D3QNTrainer(object):
     def __init_logger(self):
         return None
 
-    def run(env, agent, max_episodes, update_inter):
+    def run(self, env, agent, max_episodes, update_inter):
         episode_rewards = []
         progress_bar = trange(
             max_episodes, ncols=150, desc="Training", position=0, leave=True

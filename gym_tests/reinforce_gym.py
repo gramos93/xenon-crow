@@ -14,7 +14,8 @@ from xenon_crow.common import ReinforceBuffer
 from xenon_crow.common import ReinforceTrainer
 
 seed = 42
-ENV = gym.make("LunarLander-v2", render_mode="rgb_array")
+gym_name = "LunarLander-v2"
+ENV = gym.make(gym_name, render_mode="rgb_array")
 ENV.seed = seed
 np.random.seed(seed)
 manual_seed(seed)
@@ -39,8 +40,8 @@ agent = ReinforceAgent(
 trainer = ReinforceTrainer()
 
 hist = trainer.run(ENV, agent, MAX_EP)
-save(agent.model.state_dict(), "./models/LunarLander_REINFORCE_agent.pth")
-plot_and_save(hist, "Reinforce-LunarLander.png")
+save(agent.model.state_dict(), f"./models/{gym_name}_REINFORCE_agent.pth")
+plot_and_save(hist, f"Reinforce-{gym_name}.png")
 
 # Run the env
 state, _ = ENV.reset()
@@ -58,5 +59,5 @@ for t in range(1000):
     state = next_s
 
 ENV.close()
-save_frames_as_gif(frames, "REINFORCE-LunarLander.gif")
+save_frames_as_gif(frames, f"Reinforce-{gym_name}.gif")
 print(f"Test reward {rewards}")
