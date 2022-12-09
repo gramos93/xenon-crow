@@ -96,12 +96,12 @@ class A2CAgent(Module):
     ):
         super(A2CAgent, self).__init__()
         self.gamma = gamma
-        self._replay_buffer = buffer
+        self.replay_buffer = buffer
         self._eps = torch.finfo(torch.float32).eps
         model_class = ConvActorCritic if format == "conv" else MplActorCritic
         self.model = model_class(input_dim, output_dim)
         self.optimizer = torch.optim.Adam(
-            self.model_local.parameters(), lr=learning_rate
+            self.model.parameters(), lr=learning_rate
         )
 
     def get_action(self, state):
@@ -109,8 +109,8 @@ class A2CAgent(Module):
         action_pool = Categorical(probs)
         action = action_pool.sample()
         log_prob = action_pool.log_prob(action)
-        entropy = -(torch.mean(probs) * torch.log(probs)).sum()
-
+        entropy = action_pool.entropy.mean()
+        
         return action.item(), log_prob, entropy, value
 
     def __compute_returns(self, rewards):
@@ -126,7 +126,7 @@ class A2CAgent(Module):
 
     def __compute_loss(self, entropy):
 
-        log_prob, values, rewards = self._replay_buffer.get_episode()
+        log_prob, values, rewards = self.replay_buffer.get_episode()
         Gs = self.__compute_returns(rewards)
 
         actor_loss, critic_loss = [], []
@@ -146,4 +146,6 @@ class A2CAgent(Module):
         loss = self.__compute_loss(entropy)
         loss.backward()
         self.optimizer.step()
-        self._replay_buffer.reset()
+        self.replay_buffer.reset()
+
+        return loss.item()

@@ -83,7 +83,7 @@ class ReinforceTrainer(object):
 
             if ma_reward > env.spec.reward_threshold:
                 print("Solved! Running reward: {}".format(ma_reward))
-            break
+                break
 
         return episode_rewards
 
@@ -117,8 +117,8 @@ class A2CTrainer(object):
 
         return reward, ep_entropy
 
-    def run(env, agent, max_episodes):
-        episode_rewards = []
+    def run(self, env, agent, max_episodes):
+        ma_reward, episode_rewards = -100.0, []
         progress_bar = trange(
             max_episodes, ncols=150, desc="Training", position=0, leave=True
         )
@@ -131,6 +131,6 @@ class A2CTrainer(object):
             progress_bar.set_postfix(reward=reward, loss=loss, ma_reward=ma_reward, refresh=True)
             if ma_reward > env.spec.reward_threshold:
                 print("Solved! Running reward: {}".format(ma_reward))
-            break
+                break
 
         return episode_rewards

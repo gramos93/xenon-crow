@@ -120,11 +120,9 @@ class ReinforceAgent(Module):
             R = r + self.gamma * R
             returns.appendleft(R)
 
-        rewards = torch.tensor(returns)
         # Use normilized rewards
-        # return rewards
+        rewards = torch.tensor(returns)
         return (rewards - rewards.mean()) / (rewards.std() + self._eps)
-        # return (rewards - rewards.min()) / (rewards.max() - rewards.min())
 
     def __compute_loss(self):
         policy_loss = []

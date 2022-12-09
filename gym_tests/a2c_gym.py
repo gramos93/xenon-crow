@@ -21,8 +21,8 @@ manual_seed(seed)
 
 MAX_EP = 1200
 
-GAMMA = 0.95
-LR = 1e-4
+GAMMA = 0.99
+LR = 5e-3
 
 replay_buffer = ReinforceBuffer(
     data_handler=GymDataHandlerReinforce()
@@ -36,11 +36,11 @@ agent = A2CAgent(
     format="mlp",
 )
 
-trainer = A2CAgent()
+trainer = A2CTrainer()
 
 hist = trainer.run(ENV, agent, MAX_EP)
 save(agent.model.state_dict(), f"./models/{gym_name}_A2C_agent.pth")
-plot_and_save(hist, f"A2C-{gym_name}.png")
+plot_and_save(hist, f"A2C-{gym_name}.png", ma=0.01)
 
 # Run the env
 state, _ = ENV.reset()
