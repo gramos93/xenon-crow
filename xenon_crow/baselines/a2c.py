@@ -1,7 +1,8 @@
+from collections import deque
 import torch
 from torch.distributions import Categorical
-from torch.nn import Conv2d, Linear, Module, ReLU, Sequential, SiLU, Softmax
-from ..common import ReinforceBuffer, ReinforceHandler
+from torch.nn import Conv2d, Linear, Module, ReLU, Sequential, SiLU, Softmax, LayerNorm
+
 
 class MplActorCritic(Module):
     def __init__(self, input_dim, output_dim):
@@ -10,22 +11,29 @@ class MplActorCritic(Module):
         self.output_dim = output_dim
 
         self.feature_layer = Sequential(
-            Linear(self.input_dim, 64),
+            Linear(input_dim, 64),
+            LayerNorm(64),
             SiLU(),
             Linear(64, 128),
+            LayerNorm(128),
             SiLU(),
             Linear(128, 128),
+            LayerNorm(128),
             SiLU(),
         )
-        self.actor_head = Sequential(
-            Linear(128, 128), SiLU(), Linear(128, self.output_dim), Softmax(dim=1)
+        self.actor_layer = Sequential(
+            Linear(128, 128),
+            LayerNorm(128),
+            SiLU(),
+            Linear(128, output_dim),
+            Softmax(dim=1),
         )
-        self.critic_head = Sequential(Linear(128, 128), SiLU(), Linear(128, 1))
+        self.critic_layer = Sequential(Linear(128, 128), SiLU(), Linear(128, 1))
 
     def forward(self, state):
         features = self.feature_layer(state)
-        log_prob = self.actor_head(features)
-        value = self.critic_head(features)
+        log_prob = self.actor_layer(features)
+        value = self.critic_layer(features)
         return log_prob, value
 
 
@@ -83,14 +91,13 @@ class A2CAgent(Module):
         output_dim,
         learning_rate=3e-4,
         gamma=0.99,
+        buffer=None,
         format="conv",
     ):
-        # REF: https://github.com/Nithin-Holla/reinforce_baselines
-        # https://github.com/pytorch/examples/blob/main/reinforcement_learning
         super(A2CAgent, self).__init__()
         self.gamma = gamma
-        self._replay_buffer = ReinforceBuffer(data_handler=ReinforceHandler())
-        self._eps = torch.finfo(torch.float32).eps.item()
+        self._replay_buffer = buffer
+        self._eps = torch.finfo(torch.float32).eps
         model_class = ConvActorCritic if format == "conv" else MplActorCritic
         self.model = model_class(input_dim, output_dim)
         self.optimizer = torch.optim.Adam(
@@ -102,24 +109,35 @@ class A2CAgent(Module):
         action_pool = Categorical(probs)
         action = action_pool.sample()
         log_prob = action_pool.log_prob(action)
-        entropy = - (torch.mean(probs) * torch.log(probs)).sum()
+        entropy = -(torch.mean(probs) * torch.log(probs)).sum()
 
         return action.item(), log_prob, entropy, value
 
     def __compute_returns(self, rewards):
-        gammas = self.gamma ** (torch.arange(0, len(rewards), 1))
-        rewards = (rewards * gammas).cumsum()
+        returns = deque(maxlen=len(rewards))
+        R = 0
+        for r in reversed(rewards):
+            R = r + self.gamma * R
+            returns.appendleft(R)
+
         # Use normilized rewards
-        return (rewards - rewards.mean()) / rewards.std()
+        rewards = torch.tensor(returns)
+        return (rewards - rewards.mean()) / (rewards.std() + self._eps)
 
     def __compute_loss(self, entropy):
+
         log_prob, values, rewards = self._replay_buffer.get_episode()
-        
-        advantage = self.__compute_returns(rewards) - values
-        
-        actor_loss = (-log_prob * advantage).mean()
-        critic_loss = 0.5 * advantage.pow(2).mean()
-        
+        Gs = self.__compute_returns(rewards)
+
+        actor_loss, critic_loss = [], []
+        for log_prob, R, val in zip(log_prob, Gs, values):
+            adv = R - val
+            critic_loss.append(adv**2)
+            actor_loss.append(-log_prob * adv)
+
+        actor_loss = torch.cat(actor_loss).mean()
+        critic_loss = 0.5 * torch.cat(critic_loss).mean()
+
         return actor_loss + critic_loss + 0.001 * entropy
 
     def update(self, entropy):

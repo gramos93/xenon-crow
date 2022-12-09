@@ -112,14 +112,8 @@ class A2CTrainer(object):
             reward += r
             ep_entropy += entropy
 
-            if agent.replay_buffer.ready():
-                agent.update()
-
             step += 1
             state = next_state
-
-        action, log_prob, entropy, value = agent(state)
-        agent.replay_buffer.push(log_prob, value, 0.0)
 
         return reward, ep_entropy
 
@@ -129,10 +123,14 @@ class A2CTrainer(object):
             max_episodes, ncols=150, desc="Training", position=0, leave=True
         )
         for _ in progress_bar:
-            reward, entropy = ReinforceTrainer.generate_episode(env, agent)
-
+            reward, entropy = A2CTrainer.generate_episode(env, agent)
+            ma_reward = 0.05 * reward + (1 - 0.05) * ma_reward
             episode_rewards.append(reward)
             loss = agent.update(entropy)
-            progress_bar.set_postfix(reward=reward, loss=loss, refresh=True)
+
+            progress_bar.set_postfix(reward=reward, loss=loss, ma_reward=ma_reward, refresh=True)
+            if ma_reward > env.spec.reward_threshold:
+                print("Solved! Running reward: {}".format(ma_reward))
+            break
 
         return episode_rewards

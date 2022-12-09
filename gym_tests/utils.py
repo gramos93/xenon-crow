@@ -58,10 +58,15 @@ class GymDataHandlerReinforce(object):
         return log_probs, values, rewards
 
 
-def plot_and_save(hist, figname):
+def plot_and_save(hist, figname, smoothing=0.05):
     fig, ax = plt.subplots(1, 1, figsize=(20, 8))
     x = np.arange(1, len(hist) + 1)
-    sns.lineplot(y=hist, x=x, color="k", linewidth=1, ax=ax)
+    if smoothing >= 0.:
+        kernel = np.array([(1-smoothing), smoothing])
+        sns.lineplot(y=hist, x=x, color="k", linewidth=1, ax=ax, alpha=0.3)
+        sns.lineplot(y=np.convolve(hist, kernel, mode="same"), x=x, color="k", linewidth=1, ax=ax)
+    else:
+        sns.lineplot(y=hist, x=x, color="k", linewidth=1, ax=ax)
 
     ax.set_ylabel("Cumulative Reward")
     ax.set_xlabel("Episodes")
