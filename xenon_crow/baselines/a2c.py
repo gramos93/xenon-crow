@@ -91,11 +91,13 @@ class A2CAgent(Module):
         output_dim,
         learning_rate=3e-4,
         gamma=0.99,
+        critic_loss_mult=0.8,
         buffer=None,
         format="conv",
     ):
         super(A2CAgent, self).__init__()
         self.gamma = gamma
+        self.crt_mult = critic_loss_mult
         self.replay_buffer = buffer
         self._eps = torch.finfo(torch.float32).eps
         model_class = ConvActorCritic if format == "conv" else MplActorCritic
@@ -109,8 +111,8 @@ class A2CAgent(Module):
         action_pool = Categorical(probs)
         action = action_pool.sample()
         log_prob = action_pool.log_prob(action)
-        entropy = action_pool.entropy.mean()
-        
+        entropy = action_pool.entropy().sum()
+        # entropy = -(torch.mean(probs) * torch.log(probs)).sum()
         return action.item(), log_prob, entropy, value
 
     def __compute_returns(self, rewards):
@@ -135,8 +137,8 @@ class A2CAgent(Module):
             critic_loss.append(adv**2)
             actor_loss.append(-log_prob * adv)
 
-        actor_loss = torch.cat(actor_loss).mean()
-        critic_loss = 0.5 * torch.cat(critic_loss).mean()
+        actor_loss = torch.cat(actor_loss).sum()
+        critic_loss = self.crt_mult * torch.cat(critic_loss).sum()
 
         return actor_loss + critic_loss + 0.001 * entropy
 

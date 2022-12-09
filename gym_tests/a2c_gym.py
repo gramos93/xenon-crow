@@ -21,8 +21,8 @@ manual_seed(seed)
 
 MAX_EP = 1200
 
-GAMMA = 0.99
-LR = 5e-3
+GAMMA = 0.9
+LR = 1e-4
 
 replay_buffer = ReinforceBuffer(
     data_handler=GymDataHandlerReinforce()
@@ -32,6 +32,7 @@ agent = A2CAgent(
     output_dim=ENV.action_space.n,
     learning_rate=LR,
     gamma=GAMMA,
+    critic_loss_mult=0.85,
     buffer=replay_buffer,
     format="mlp",
 )
