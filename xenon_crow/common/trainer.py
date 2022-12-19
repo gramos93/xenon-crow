@@ -20,7 +20,7 @@ class D3QNTrainer(object):
             state, _ = env.reset()
 
             while not terminated:
-                action = agent.get_action(state)
+                action = agent.get_action(state.float())
                 next_state, r, done, trunc, *_ = env.step(action)
                 terminated = done or trunc
 
@@ -32,8 +32,8 @@ class D3QNTrainer(object):
 
                 step += 1
                 state = next_state
-
-                if step > 1000:
+                progress_bar.set_description(f"Training {step}/1000", refresh=True)
+                if step > 80:
                     break
 
             agent.update_epsilon(agent.epsilon * 0.99)

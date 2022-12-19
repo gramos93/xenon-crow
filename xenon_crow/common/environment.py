@@ -27,15 +27,21 @@ class XenonDataHandler(object):
                         selected actions according to the target network
                         and targets are the one-step lookahead targets.
         """
-        batch = np.array(batch, dtype=object)
+        states, next_states, action_hist, rewards, not_finals = [], [], [], [], []
+        for s in batch:
+            states.append(s[0])
+            next_states.append(s[3])
+            action_hist.append(s[1])
+            rewards.append(s[2])
+            not_finals.append(s[-1])
 
-        states = torch.tensor(np.stack(batch[:, 0])).to(torch.float32).squeeze(1)
-        next_states = torch.tensor(np.stack(batch[:, 3])).to(torch.float32).squeeze(1)
+        states = torch.stack(states).to(torch.float32).squeeze(1)
+        next_states = torch.stack(next_states).to(torch.float32).squeeze(1)
+        action_hist = torch.tensor(action_hist).to(torch.int64).unsqueeze(1)
+        rewards = torch.tensor(rewards).to(torch.float32).unsqueeze(1)
+        not_finals = torch.tensor(not_finals).to(torch.float32).unsqueeze(1)
+        not_finals = torch.logical_not(not_finals).float()
 
-        action_hist = torch.tensor(batch[:, 1, None].astype(np.int64))
-        rewards = torch.tensor(batch[:, 2, None].astype(np.float32))
-        not_finals = np.logical_not(batch[:, -1, None].astype(np.ubyte))
-        not_finals = torch.tensor(not_finals).float()
         return states, action_hist, rewards, next_states, not_finals
 
 

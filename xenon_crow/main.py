@@ -4,7 +4,6 @@ from pathlib import Path
 # Add xenon_crow path to python module search path.
 sys.path.append(str(Path(__file__).parent.resolve().parent))
 
-import gym
 import numpy as np
 from torch import float32, manual_seed, save, tensor
 
@@ -21,7 +20,7 @@ manual_seed(seed)
 MAX_EP = 100
 
 GAMMA = 0.99
-LR = 5e-4
+LR = 1e-4
 TAU = 5e-3
 EPS = 1.0
 
