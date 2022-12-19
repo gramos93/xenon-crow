@@ -115,13 +115,13 @@ class XenonCrowEnv(Env):
 
         if action == 0:
             self.progress_mask = torch.bitwise_or(
-                self.progress_mask.byte(), torch.bitwise_not(step_mask)
+                self.progress_mask, torch.bitwise_not(step_mask)
             )
         else:
-            self.progress_mask = torch.bitwise_or(self.progress_mask.byte(), step_mask)
+            self.progress_mask = torch.bitwise_or(self.progress_mask, step_mask)
 
         reward = self.iou_pytorch(
-            self.progress_mask.byte(), self.dataset.dataset.gt.byte()
+            self.progress_mask, self.dataset.dataset.gt.byte()
         )  # IoU between gt and mask action
 
         if reward > torch.tensor(0.98):
@@ -132,7 +132,8 @@ class XenonCrowEnv(Env):
         info = {}
         img, next_state, _ = next(self.iterator)
         observation = torch.cat([img, self.progress_mask, next_state], dim=1)
-        return observation, reward, done, info
+        # Needs to return done, truncated. Here we use `done` for both. 
+        return observation, reward, done, done, info
 
     def render(self):
         return torch.vstack([self.state.squeeze(0), self.progress_mask]).unsqueeze(0)

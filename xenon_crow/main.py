@@ -27,7 +27,7 @@ EPS = 1.0
 
 TRAIN_INTER = 4
 BUFFER_SIZE = 1e3
-BATCH_SIZE = 64
+BATCH_SIZE = 16
 
 replay_buffer = RandomBuffer(
     max_size=BUFFER_SIZE, batch_size=BATCH_SIZE, data_handler=XenonDataHandler()
@@ -47,23 +47,3 @@ trainer = D3QNTrainer()
 hist = trainer.run(ENV, agent, MAX_EP, TRAIN_INTER)
 save(agent.model_target.state_dict(), f"./models/{gym_name}_D3QN_Target.pth")
 save(agent.model_local.state_dict(), f"./models/{gym_name}_D3QN_Local.pth")
-
-
-# Run the env
-# state, _ = ENV.reset()
-# frames = []
-# rewards = 0
-# agent.update_epsilon(0.0)
-# for t in range(1000):
-#     # Render to frames buffer
-#     frames.append(ENV.render())
-#     action = agent.get_action(tensor(state, dtype=float32).unsqueeze(0))
-#     next_s, r, done, trunc, _ = ENV.step(action)
-#     rewards += r
-
-#     if done or trunc:
-#         break
-#     state = next_s
-
-# ENV.close()
-# print(f"Test reward {rewards}")

@@ -33,6 +33,9 @@ class D3QNTrainer(object):
                 step += 1
                 state = next_state
 
+                if step > 1000:
+                    break
+
             agent.update_epsilon(agent.epsilon * 0.99)
             episode_rewards.append(reward)
             progress_bar.set_postfix(reward=reward, epsilon=agent.epsilon, refresh=True)
