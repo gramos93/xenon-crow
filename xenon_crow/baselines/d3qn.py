@@ -118,10 +118,11 @@ class DuelingDQNAgent(Module):
         self.epsilon = epsilon
         self.replay_buffer = buffer
         self.actions = np.arange(0, output_dim, 1)
+        self.device = "cuda"
 
         model_class = ConvDuelingDQN if format == "conv" else MplDuelingDQN
-        self.model_local = model_class(input_dim, output_dim)
-        self.model_target = model_class(input_dim, output_dim)
+        self.model_local = model_class(input_dim, output_dim).to(self.decive)
+        self.model_target = model_class(input_dim, output_dim).to(self.decive)
 
         self.optimizer = torch.optim.Adam(
             self.model_local.parameters(), lr=learning_rate
@@ -149,11 +150,16 @@ class DuelingDQNAgent(Module):
         if np.random.uniform(0, 1) < self.epsilon:
             return np.random.choice(self.actions)
         else:
-            qvals = self.model_local(state)
+            qvals = self.model_local(state.to(self.decive)).cpu()
             return torch.argmax(qvals, dim=1).item()
 
     def compute_loss(self, batch):
         states, actions, rewards, next_states, not_dones = batch
+        states = states.to(self.decive)
+        actions = actions.to(self.decive)
+        rewards = rewards.to(self.decive)
+        next_states = next_states.to(self.decive)
+        not_dones = not_dones.to(self.decive)
 
         curr_Q = self.model_local(states).gather(1, actions)
         next_Q = self.model_target(next_states)
@@ -171,3 +177,5 @@ class DuelingDQNAgent(Module):
         self.optimizer.step()
 
         self.__update_target_model()
+
+        return loss.item()

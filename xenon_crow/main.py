@@ -25,8 +25,8 @@ TAU = 5e-3
 EPS = 1.0
 
 TRAIN_INTER = 4
-BUFFER_SIZE = 50
-BATCH_SIZE = 16
+BUFFER_SIZE = 200
+BATCH_SIZE = 64
 
 replay_buffer = RandomBuffer(
     max_size=BUFFER_SIZE, batch_size=BATCH_SIZE, data_handler=XenonDataHandler()

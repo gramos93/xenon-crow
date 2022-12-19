@@ -122,15 +122,15 @@ class XenonCrowEnv(Env):
         step_mask = self.state[:, -1:, :, :].byte()
 
         if action == 0:
-            self.progress_mask = torch.bitwise_or(
-                self.progress_mask, torch.bitwise_not(step_mask)
+            self.progress_mask = torch.clamp(self.progress_mask - step_mask, 0, 1)
+            reward = -1.0 * self.iou_pytorch(
+                step_mask, self.dataset.dataset.gt.byte()
             )
         else:
-            self.progress_mask = torch.bitwise_or(self.progress_mask, step_mask)
-
-        reward = self.iou_pytorch(
-            self.progress_mask, self.dataset.dataset.gt.byte()
-        )  # IoU between gt and mask action
+            self.progress_mask = torch.logical_or(self.progress_mask, step_mask).byte()
+            reward = self.iou_pytorch(
+                step_mask, self.dataset.dataset.gt.byte()
+            )
 
         if reward > torch.tensor(0.98):
             done = True

@@ -15,7 +15,7 @@ class D3QNTrainer(object):
             max_episodes, ncols=150, desc="Training", position=0, leave=True
         )
         for _ in progress_bar:
-            step, reward = 1, 0.0
+            step, reward, total_loss = 1, 0.0, 0.0
             terminated = False
             state, _ = env.reset()
 
@@ -28,17 +28,18 @@ class D3QNTrainer(object):
                 reward += r
 
                 if agent.replay_buffer.ready() and step % update_inter == 0:
-                    agent.update()
+                    total_loss += agent.update()
 
                 step += 1
                 state = next_state
                 progress_bar.set_description(f"Training {step}/1000", refresh=True)
-                if step > 80:
+                if step > 250:
                     break
-
+            
             agent.update_epsilon(agent.epsilon * 0.99)
+            total_loss /= step
             episode_rewards.append(reward)
-            progress_bar.set_postfix(reward=reward, epsilon=agent.epsilon, refresh=True)
+            progress_bar.set_postfix(reward=reward, epsilon=agent.epsilon, loss=total_loss, refresh=True)
 
         return episode_rewards
 
