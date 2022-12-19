@@ -1,11 +1,12 @@
-from typing import Tuple
 from itertools import cycle
 from pathlib import Path
-from natsort import natsort
 from random import choice
+from typing import Tuple
+
 import numpy as np
 import torch
-from gym import spaces, Env
+from gym import Env, spaces
+from natsort import natsort
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import Compose, ToTensor
@@ -53,18 +54,17 @@ class XenonCrowDataset(Dataset):
         return len(self.states)
 
     def __getitem__(self, idx):
-        if self.mode == "single":
 
-            if not hasattr(self, "image"):
-                self.image = Image.open(self.image_path).convert("RGB")
-                self.image = self.transform(self.image)
+        if not hasattr(self, "image"):
+            self.image = Image.open(self.image_path).convert("RGB")
+            self.image = self.transform(self.image)
 
-            if not hasattr(self, "gt"):
-                self.gt = Image.open(self.gt_path).convert("L")
-                self.gt = self.transform(self.gt)
+        if not hasattr(self, "gt"):
+            self.gt = Image.open(self.gt_path).convert("L")
+            self.gt = self.transform(self.gt)
 
-            state = Image.open(self.states[idx]).convert("L")
-            state = self.transform(state)
+        state = Image.open(self.states[idx]).convert("L")
+        state = self.transform(state)
 
         return self.image, state, self.gt
 
@@ -98,10 +98,10 @@ class XenonCrowEnv(Env):
 
     def reset(self):
         self.dataset = DataLoader(
-                XenonCrowDataset(self.root, choice(self.episodes)),
-                shuffle=True,
-                batch_size=1,
-            )
+            XenonCrowDataset(self.root, choice(self.episodes)),
+            shuffle=True,
+            batch_size=1,
+        )
         self.iterator = cycle(self.dataset)
         self.progress_mask = torch.zeros(self.observation_space.shape).type(torch.int32)
         # This step initializes the self.image and self.gt of the Dataset.
@@ -120,7 +120,9 @@ class XenonCrowEnv(Env):
         else:
             self.progress_mask = torch.bitwise_or(self.progress_mask, step_mask)
 
-        reward = self.iou_pytorch(self.dataset.gt, self.progress_mask)  # IoU between gt and mask action
+        reward = self.iou_pytorch(
+            self.dataset.gt, self.progress_mask
+        )  # IoU between gt and mask action
 
         if reward > torch.tensor(0.98):
             done = True
@@ -129,9 +131,7 @@ class XenonCrowEnv(Env):
 
         info = {}
         img, next_state, _ = next(self.iterator)
-        observation = torch.vstack(
-            [img, self.progress_mask, next_state]
-        )
+        observation = torch.vstack([img, self.progress_mask, next_state])
         return observation, reward, done, info
 
     def render(self):
