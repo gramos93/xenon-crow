@@ -1,4 +1,4 @@
-from torch import tensor, float32
+from torch import tensor, float32, is_tensor
 from tqdm.auto import trange
 
 
@@ -20,6 +20,9 @@ class D3QNTrainer(object):
             state, _ = env.reset()
 
             while not terminated:
+                if not is_tensor(state):
+                    state = tensor(state, dtype=float32).unsqueeze(0)
+                    
                 action = agent.get_action(state.float())
                 next_state, r, done, trunc, *_ = env.step(action)
                 terminated = done or trunc
@@ -58,9 +61,10 @@ class ReinforceTrainer(object):
         state, _ = env.reset()
 
         while not terminated:
-            action, log_prob, value = agent.get_action(
-                tensor(state, dtype=float32).unsqueeze(0)
-            )
+            if not is_tensor(state):
+                state = tensor(state, dtype=float32).unsqueeze(0)
+
+            action, log_prob, value = agent.get_action(state.float())
             next_state, r, done, trunc, *_ = env.step(action)
             terminated = done or trunc
 
@@ -106,9 +110,10 @@ class A2CTrainer(object):
         state, _ = env.reset()
 
         while not terminated:
-            action, log_prob, entropy, value = agent.get_action(
-                tensor(state, dtype=float32).unsqueeze(0)
-            )
+            if not is_tensor(state):
+                state = tensor(state, dtype=float32).unsqueeze(0)
+
+            action, log_prob, entropy, value = agent.get_action(state.float())
             next_state, r, done, trunc, *_ = env.step(action)
             terminated = done or trunc
 

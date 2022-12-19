@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.resolve().parent))
 
 import numpy as np
-from torch import float32, manual_seed, save, tensor
+from torch import manual_seed, save
 
 from xenon_crow.baselines import DuelingDQNAgent
 from xenon_crow.common import RandomBuffer, D3QNTrainer, XenonCrowEnv, XenonDataHandler, plot_and_save
