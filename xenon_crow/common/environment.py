@@ -3,13 +3,12 @@ from pathlib import Path
 from random import choice
 from typing import Tuple
 
-import numpy as np
 import torch
 from gym import Env, spaces
 from natsort import natsorted
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
-from torchvision.transforms import Compose, ToTensor
+from torchvision.transforms import Compose, ToTensor, Resize, InterpolationMode
 
 
 class XenonDataHandler(object):
@@ -54,7 +53,10 @@ class XenonCrowDataset(Dataset):
         self.states = natsorted(
             Path.glob(self.root / "masks/states" / self.image_path.stem, "*")
         )
-        self.transform = Compose([ToTensor()])
+        self.input_transform = Compose([Resize((120, 160)), ToTensor()])
+        self.target_transform = Compose(
+            [Resize((120, 160), InterpolationMode.NEAREST), ToTensor()]
+        )
 
     def __len__(self):
         return len(self.states)
@@ -63,14 +65,14 @@ class XenonCrowDataset(Dataset):
 
         if not hasattr(self, "image"):
             self.image = Image.open(self.image_path).convert("RGB")
-            self.image = self.transform(self.image)
+            self.image = self.input_transform(self.image)
 
         if not hasattr(self, "gt"):
             self.gt = Image.open(self.gt_path).convert("L")
-            self.gt = self.transform(self.gt)
+            self.gt = self.target_transform(self.gt)
 
         state = Image.open(self.states[idx]).convert("L")
-        state = self.transform(state)
+        state = self.target_transform(state)
 
         return self.image, state, self.gt
 
@@ -90,8 +92,8 @@ class XenonCrowEnv(Env):
         # self.progress_mask = torch.zeros((1, 240, 320))
         self.action_space = spaces.Discrete(2)
         # image as input:
-        height = 240
-        width = 320
+        height = 240//2
+        width = 320//2
         n_channels = 5
         self.observation_space = spaces.Box(
             low=0, high=255, shape=(1, n_channels, height, width)
@@ -138,7 +140,7 @@ class XenonCrowEnv(Env):
         info = {}
         img, next_state, _ = next(self.iterator)
         observation = torch.cat([img, self.progress_mask, next_state], dim=1)
-        # Needs to return done, truncated. Here we use `done` for both. 
+        # Needs to return done, truncated. Here we use `done` for both.
         return observation, reward, done, done, info
 
     def render(self):
@@ -162,6 +164,6 @@ class XenonCrowEnv(Env):
             union + SMOOTH
         ).item()  # We smooth our devision to avoid 0/0
         if iou < 0.01:
-            iou = 0.0
+            iou = -0.10
 
         return iou

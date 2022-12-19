@@ -1,7 +1,8 @@
 import numpy as np
 import torch
-from torch.nn import Conv2d, Linear, Module, ReLU, Sequential, SiLU
+from torch.nn import Conv2d, Linear, Module, ReLU, Sequential, SiLU, Identity
 from torch.nn.functional import mse_loss
+from torchvision.models import resnet18
 
 
 class MplDuelingDQN(Module):
@@ -49,14 +50,15 @@ class ConvDuelingDQN(Module):
         super(ConvDuelingDQN, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
-        self.conv = Sequential(
-            Conv2d(input_dim[1], 32, kernel_size=5, stride=1),
-            SiLU(),
-            Conv2d(32, 64, kernel_size=5, stride=1),
-            SiLU(),
-            Conv2d(64, 64, kernel_size=3, stride=1),
-            SiLU(),
+        self.model = resnet18()
+        self.model.conv1 = Conv2d(
+            input_dim[1],
+            self.model.conv1.out_channels,
+            self.model.conv1.kernel_size,
+            self.model.conv1.stride,
+            self.model.conv1.padding,
         )
+        self.model.fc = Identity()
 
         self.fc_input_dim = self.feature_size()
 
@@ -81,7 +83,7 @@ class ConvDuelingDQN(Module):
         return self.load_state_dict(weights, strict=strict)
 
     def forward(self, state):
-        features = self.conv(state)
+        features = self.model(state)
         features = features.view(features.size(0), -1)
         values = self.value_stream(features)
         advantages = self.advantage_stream(features)
@@ -92,7 +94,7 @@ class ConvDuelingDQN(Module):
     @torch.no_grad()
     def feature_size(self):
         return (
-            self.conv(torch.zeros(self.input_dim, requires_grad=False))
+            self.model(torch.zeros(self.input_dim, requires_grad=False))
             .view(1, -1)
             .size(1)
         )
