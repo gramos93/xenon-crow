@@ -1,6 +1,7 @@
 # Dependencies
 black
 glob2
+natsort
 typing_extensions
 
 pytest

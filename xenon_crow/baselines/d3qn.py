@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from torch.nn import Conv2d, Linear, Module, ModuleDict, ReLU, Sequential, SiLU
+from torch.nn import Conv2d, Linear, Module, ReLU, Sequential, SiLU
 from torch.nn.functional import mse_loss
 
 
@@ -51,11 +51,11 @@ class ConvDuelingDQN(Module):
         self.output_dim = output_dim
         self.conv = Sequential(
             Conv2d(input_dim[0], 32, kernel_size=5, stride=1),
-            ReLU(),
+            SiLU(),
             Conv2d(32, 64, kernel_size=5, stride=1),
-            ReLU(),
+            SiLU(),
             Conv2d(64, 64, kernel_size=3, stride=1),
-            ReLU(),
+            SiLU(),
         )
 
         self.fc_input_dim = self.feature_size()
@@ -120,26 +120,26 @@ class DuelingDQNAgent(Module):
         model_class = ConvDuelingDQN if format == "conv" else MplDuelingDQN
         self.model_local = model_class(input_dim, output_dim)
         self.model_target = model_class(input_dim, output_dim)
-        
+
         self.optimizer = torch.optim.Adam(
             self.model_local.parameters(), lr=learning_rate
         )
 
     def update_epsilon(self, eps):
-        if eps > 0.:
+        if eps > 0.0:
             self.epsilon = max(0.1, eps)
         else:
-            self.epsilon = 0.
-            
+            self.epsilon = 0.0
+
     def __update_target_model(self):
 
         new_weights = {}
         local_weights = self.model_local.state_dict()
         target_weights = self.model_target.state_dict()
         for w in target_weights:
-            new_weights[w] = (1 - self.tau) * target_weights[
-                w
-            ] + self.tau * local_weights[w]
+            new_weights[w] = (
+                (1 - self.tau) * target_weights[w]
+            ) + self.tau * local_weights[w]
 
         self.model_target.set_weights(new_weights)
 
@@ -157,9 +157,7 @@ class DuelingDQNAgent(Module):
         next_Q = self.model_target(next_states)
         target_Q = rewards + self.gamma * next_Q * not_dones
 
-        return mse_loss(
-            curr_Q, target_Q.max(1, keepdims=True).values
-        )
+        return mse_loss(curr_Q, target_Q.max(1, keepdims=True).values)
 
     def update(self):
 
