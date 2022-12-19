@@ -87,7 +87,7 @@ class XenonCrowEnv(Env):
         self.root = path
         # List of available images to serve as episodes.
         self.episodes = [file.name for file in Path.glob(Path(path) / "imgs", "*")]
-        self.progress_mask = torch.zeros((1, 240, 320))
+        # self.progress_mask = torch.zeros((1, 240, 320))
         self.action_space = spaces.Discrete(2)
         # image as input:
         height = 240
