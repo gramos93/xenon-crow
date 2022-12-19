@@ -8,7 +8,8 @@ import numpy as np
 from torch import float32, manual_seed, save, tensor
 
 from xenon_crow.baselines import DuelingDQNAgent
-from xenon_crow.common import RandomBuffer, D3QNTrainer, XenonCrowEnv, XenonDataHandler
+from xenon_crow.common import RandomBuffer, D3QNTrainer, XenonCrowEnv, XenonDataHandler, plot_and_save
+
 
 seed = 42
 gym_name = "Thermal"
@@ -46,3 +47,5 @@ trainer = D3QNTrainer()
 hist = trainer.run(ENV, agent, MAX_EP, TRAIN_INTER)
 save(agent.model_target.state_dict(), f"./models/{gym_name}_D3QN_Target.pth")
 save(agent.model_local.state_dict(), f"./models/{gym_name}_D3QN_Local.pth")
+
+plot_and_save(hist, figname="Xenon-D3QN")
