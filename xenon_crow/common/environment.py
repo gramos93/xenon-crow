@@ -29,8 +29,8 @@ class XenonDataHandler(object):
         """
         batch = np.array(batch, dtype=object)
 
-        states = torch.tensor(np.stack(batch[:, 0])).to(torch.float32)
-        next_states = torch.tensor(np.stack(batch[:, 3])).to(torch.float32)
+        states = torch.tensor(np.stack(batch[:, 0])).to(torch.float32).squeeze(1)
+        next_states = torch.tensor(np.stack(batch[:, 3])).to(torch.float32).squeeze(1)
 
         action_hist = torch.tensor(batch[:, 1, None].astype(np.int64))
         rewards = torch.tensor(batch[:, 2, None].astype(np.float32))
@@ -108,7 +108,7 @@ class XenonCrowEnv(Env):
         img, next_state, _ = next(self.iterator)
         # The ground truth is not used in the state to the model.
         self.state = torch.cat([img, self.progress_mask, next_state], dim=1)
-        return self.state
+        return self.state, None
 
     def step(self, action):  # 0 is off, 1 is on
         step_mask = self.state[:, -1:, :, :].byte()

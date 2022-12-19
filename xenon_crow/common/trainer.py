@@ -20,7 +20,7 @@ class D3QNTrainer(object):
             state, _ = env.reset()
 
             while not terminated:
-                action = agent.get_action(tensor(state, dtype=float32).unsqueeze(0))
+                action = agent.get_action(state)
                 next_state, r, done, trunc, *_ = env.step(action)
                 terminated = done or trunc
 

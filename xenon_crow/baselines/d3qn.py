@@ -50,7 +50,7 @@ class ConvDuelingDQN(Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.conv = Sequential(
-            Conv2d(input_dim[0], 32, kernel_size=5, stride=1),
+            Conv2d(input_dim[1], 32, kernel_size=5, stride=1),
             SiLU(),
             Conv2d(32, 64, kernel_size=5, stride=1),
             SiLU(),
@@ -92,7 +92,7 @@ class ConvDuelingDQN(Module):
     @torch.no_grad()
     def feature_size(self):
         return (
-            self.conv(torch.zeros(1, *self.input_dim, requires_grad=False))
+            self.conv(torch.zeros(self.input_dim, requires_grad=False))
             .view(1, -1)
             .size(1)
         )

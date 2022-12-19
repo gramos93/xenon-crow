@@ -13,7 +13,7 @@ from xenon_crow.common import RandomBuffer, D3QNTrainer, XenonCrowEnv, XenonData
 
 seed = 42
 gym_name = "Thermal"
-ENV = XenonCrowEnv("single", "./data/train_4")
+ENV = XenonCrowEnv("./data/train_4")
 ENV.seed = seed
 np.random.seed(seed)
 manual_seed(seed)
@@ -26,14 +26,14 @@ TAU = 5e-3
 EPS = 1.0
 
 TRAIN_INTER = 4
-BUFFER_SIZE = 1e3
+BUFFER_SIZE = 50
 BATCH_SIZE = 16
 
 replay_buffer = RandomBuffer(
     max_size=BUFFER_SIZE, batch_size=BATCH_SIZE, data_handler=XenonDataHandler()
 )
 agent = DuelingDQNAgent(
-    input_dim=ENV.observation_space.shape[0],
+    input_dim=ENV.observation_space.shape,
     output_dim=ENV.action_space.n,
     buffer=replay_buffer,
     learning_rate=LR,

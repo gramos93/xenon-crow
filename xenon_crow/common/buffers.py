@@ -6,7 +6,7 @@ class RandomBuffer(object):
     def __init__(self, data_handler, max_size: int = 1e5, batch_size: int = 32) -> None:
         super(RandomBuffer).__init__()
         self.batch_size = batch_size
-        self.__buffer = deque(maxlen=max_size)
+        self.__buffer = deque(maxlen=int(max_size))
         self.__data_handler = data_handler
 
     def sample(self):
