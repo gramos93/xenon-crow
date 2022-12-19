@@ -6,7 +6,7 @@ from typing import Tuple
 import numpy as np
 import torch
 from gym import Env, spaces
-from natsort import natsort
+from natsort import natsorted
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import Compose, ToTensor
@@ -45,10 +45,10 @@ class XenonCrowDataset(Dataset):
         self.root = Path(path)
         self.image_path = self.root / "imgs" / image_name
         self.gt_path = self.root / "masks/gt" / (self.image_path.stem + ".png")
-        self.states = natsort(
-            Path.glob(self.root / "masks/states" / self.image_path.stem)
+        self.states = natsorted(
+            Path.glob(self.root / "masks/states" / self.image_path.stem, "*")
         )
-        self.transform = Compose([ToTensor])
+        self.transform = Compose([ToTensor()])
 
     def __len__(self):
         return len(self.states)
@@ -80,7 +80,7 @@ class XenonCrowEnv(Env):
         # Path to whole dataset
         self.root = path
         # List of available images to serve as episodes.
-        self.episodes = [file.name for file in Path.glob(path + "imgs/*")]
+        self.episodes = [file.name for file in Path.glob(Path(path) / "imgs", "*")]
         self.progress_mask = torch.zeros((1, 240, 320))
         self.action_space = spaces.Discrete(2)
         # image as input:
@@ -88,10 +88,8 @@ class XenonCrowEnv(Env):
         width = 320
         n_channels = 5
         self.observation_space = spaces.Box(
-            low=0, high=255, shape=(n_channels, height, width)
+            low=0, high=255, shape=(1, n_channels, height, width)
         )
-
-        self.state = torch.zeros((1, 5, 240, 320))
 
     def set_random_seed(self, seed):
         self.seed = seed
@@ -103,25 +101,27 @@ class XenonCrowEnv(Env):
             batch_size=1,
         )
         self.iterator = cycle(self.dataset)
-        self.progress_mask = torch.zeros(self.observation_space.shape).type(torch.int32)
+        self.progress_mask = torch.zeros(
+            (1, 1, *self.observation_space.shape[2:]), dtype=torch.uint8
+        )
         # This step initializes the self.image and self.gt of the Dataset.
         img, next_state, _ = next(self.iterator)
         # The ground truth is not used in the state to the model.
-        self.state = torch.vstack([img, self.progress_mask, next_state])
+        self.state = torch.cat([img, self.progress_mask, next_state], dim=1)
         return self.state
 
     def step(self, action):  # 0 is off, 1 is on
-        step_mask = self.state[:, -1:, :, :].type(torch.int64)
+        step_mask = self.state[:, -1:, :, :].byte()
 
         if action == 0:
             self.progress_mask = torch.bitwise_or(
-                self.progress_mask, torch.bitwise_not(step_mask)
+                self.progress_mask.byte(), torch.bitwise_not(step_mask)
             )
         else:
-            self.progress_mask = torch.bitwise_or(self.progress_mask, step_mask)
+            self.progress_mask = torch.bitwise_or(self.progress_mask.byte(), step_mask)
 
         reward = self.iou_pytorch(
-            self.dataset.gt, self.progress_mask
+            self.progress_mask.byte(), self.dataset.dataset.gt.byte()
         )  # IoU between gt and mask action
 
         if reward > torch.tensor(0.98):
@@ -131,7 +131,7 @@ class XenonCrowEnv(Env):
 
         info = {}
         img, next_state, _ = next(self.iterator)
-        observation = torch.vstack([img, self.progress_mask, next_state])
+        observation = torch.cat([img, self.progress_mask, next_state], dim=1)
         return observation, reward, done, info
 
     def render(self):
@@ -146,15 +146,14 @@ class XenonCrowEnv(Env):
         # outputs = outputs.squeeze(1)  # BATCH x 1 x H x W => BATCH x H x W
 
         intersection = (
-            (outputs & labels).float().sum((1, 2))
+            (outputs & labels).float().sum()
         )  # Will be zero if Truth=0 or Prediction=0
 
-        union = (outputs | labels).float().sum((1, 2))  # Will be zzero if both are 0
+        union = (outputs | labels).float().sum()  # Will be zero if both are 0
 
         iou = (intersection + SMOOTH) / (
             union + SMOOTH
-        )  # We smooth our devision to avoid 0/0
-
+        ).item()  # We smooth our devision to avoid 0/0
         if iou < 0.01:
             iou = 0.0
 
