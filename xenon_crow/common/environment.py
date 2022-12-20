@@ -126,12 +126,12 @@ class XenonCrowEnv(Env):
         trunc = False
         if action == 0:
             self.progress_mask = torch.clamp(self.progress_mask - step_mask, 0, 1)
-            reward = -1.0 * self.iou_pytorch(
+            reward = -0.1 * self.iou_pytorch(
                 step_mask.squeeze(0), self.dataset.dataset.gt.byte()
             )
         else:
             self.progress_mask = torch.logical_or(self.progress_mask, step_mask).byte()
-            reward = 2.0 * self.iou_pytorch(
+            reward = 5.0 * self.iou_pytorch(
                 step_mask.squeeze(0), self.dataset.dataset.gt.byte()
             )
 
@@ -178,15 +178,15 @@ class XenonCrowEnv(Env):
         # outputs = outputs.squeeze(1)  # BATCH x 1 x H x W => BATCH x H x W
 
         intersection = (
-            (outputs & labels).float().sum()
+            torch.logical_and(outputs, labels).float().sum()
         )  # Will be zero if Truth=0 or Prediction=0
 
-        union = (outputs | labels).float().sum()  # Will be zero if both are 0
+        union = torch.logical_or(outputs, labels).float().sum()  # Will be zero if both are 0
 
         iou = (intersection + SMOOTH) / (
             union + SMOOTH
         ).item()  # We smooth our devision to avoid 0/0
         if iou < 0.01:
-            iou = -0.10
+            iou = -1.0
 
         return iou

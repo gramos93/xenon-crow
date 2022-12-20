@@ -38,7 +38,7 @@ class D3QNTrainer(object):
                 progress_bar.set_description(f"Training {step}/1000", refresh=True)
 
             
-            agent.update_epsilon(agent.epsilon * 0.997)
+            agent.update_epsilon(agent.epsilon * 0.999)
             total_loss /= step
             episode_rewards.append(reward)
             progress_bar.set_postfix(reward=reward, epsilon=agent.epsilon, loss=total_loss, refresh=True)
