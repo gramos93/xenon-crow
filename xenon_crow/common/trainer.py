@@ -24,7 +24,6 @@ class D3QNTrainer(object):
                     state = tensor(state, dtype=float32).unsqueeze(0)
 
                 action = agent.get_action(state.float())
-                action = 1
                 next_state, r, done, trunc, *_ = env.step(action)
                 terminated = done or trunc
 
