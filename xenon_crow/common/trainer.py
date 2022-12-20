@@ -36,10 +36,9 @@ class D3QNTrainer(object):
                 step += 1
                 state = next_state
                 progress_bar.set_description(f"Training {step}/1000", refresh=True)
-                # if step > 250:
-                #     break
+
             
-            agent.update_epsilon(agent.epsilon * 0.95)
+            agent.update_epsilon(agent.epsilon * 0.997)
             total_loss /= step
             episode_rewards.append(reward)
             progress_bar.set_postfix(reward=reward, epsilon=agent.epsilon, loss=total_loss, refresh=True)
