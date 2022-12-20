@@ -13,7 +13,7 @@ from xenon_crow.common import RandomBuffer, D3QNTrainer, XenonCrowEnv, XenonData
 
 seed = 42
 gym_name = "Thermal"
-ENV = XenonCrowEnv("./data/train_4")
+ENV = XenonCrowEnv("./data/train")
 ENV.seed = seed
 np.random.seed(seed)
 manual_seed(seed)
@@ -48,4 +48,4 @@ hist = trainer.run(ENV, agent, MAX_EP, TRAIN_INTER)
 save(agent.model_target.state_dict(), f"./models/{gym_name}_D3QN_Target.pth")
 save(agent.model_local.state_dict(), f"./models/{gym_name}_D3QN_Local.pth")
 
-plot_and_save(hist, figname="Xenon-D3QN")
+plot_and_save(hist, figname="Xenon-D3QN.png")

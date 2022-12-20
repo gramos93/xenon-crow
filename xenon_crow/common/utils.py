@@ -60,8 +60,8 @@ class GymDataHandlerReinforce(object):
 
 def plot_and_save(hist, figname, ma=0.2):
     fig, ax = plt.subplots(1, 1, figsize=(20, 8))
-    x = np.arange(1, len(hist) + 1)
-
+    x = np.arange(1, len(hist) + 1, dtype=float)
+    hist = np.array(hist, dtype=float)
     if ma < 1:
         kernel_size = int(len(hist) * ma)
         kernel = np.ones(kernel_size) / kernel_size

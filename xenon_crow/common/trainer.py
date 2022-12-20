@@ -22,7 +22,7 @@ class D3QNTrainer(object):
             while not terminated:
                 if not is_tensor(state):
                     state = tensor(state, dtype=float32).unsqueeze(0)
-                    
+
                 action = agent.get_action(state.float())
                 next_state, r, done, trunc, *_ = env.step(action)
                 terminated = done or trunc
@@ -36,8 +36,8 @@ class D3QNTrainer(object):
                 step += 1
                 state = next_state
                 progress_bar.set_description(f"Training {step}/1000", refresh=True)
-                if step > 250:
-                    break
+                # if step > 250:
+                #     break
             
             agent.update_epsilon(agent.epsilon * 0.99)
             total_loss /= step
@@ -81,7 +81,7 @@ class ReinforceTrainer(object):
         progress_bar = trange(
             max_episodes, ncols=150, desc="Training", position=0, leave=True
         )
-        ma_reward = -200
+        ma_reward = -10
         for _ in progress_bar:
             reward = ReinforceTrainer.generate_episode(env, agent)
             episode_rewards.append(reward)

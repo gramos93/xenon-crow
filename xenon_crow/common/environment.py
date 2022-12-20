@@ -1,4 +1,4 @@
-from itertools import cycle
+from itertools import cycle, repeat
 from pathlib import Path
 from random import choice
 from typing import Tuple
@@ -103,12 +103,14 @@ class XenonCrowEnv(Env):
         self.seed = seed
 
     def reset(self):
+        self.runs = 0
         self.dataset = DataLoader(
             XenonCrowDataset(self.root, choice(self.episodes)),
             shuffle=True,
             batch_size=1,
         )
         self.iterator = cycle(self.dataset)
+        self.steps = 0
         self.progress_mask = torch.zeros(
             (1, 1, *self.observation_space.shape[2:]), dtype=torch.uint8
         )
@@ -128,7 +130,7 @@ class XenonCrowEnv(Env):
             )
         else:
             self.progress_mask = torch.logical_or(self.progress_mask, step_mask).byte()
-            reward = self.iou_pytorch(
+            reward = 2.0 * self.iou_pytorch(
                 step_mask, self.dataset.dataset.gt.byte()
             )
 
@@ -136,6 +138,11 @@ class XenonCrowEnv(Env):
             done = True
         else:
             done = False
+
+        if self.steps ==  2 * len(self.dataset.dataset):
+            done = True
+        else:
+            self.steps += 1
 
         info = {}
         img, next_state, _ = next(self.iterator)
