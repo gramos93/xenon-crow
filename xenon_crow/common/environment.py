@@ -2,7 +2,7 @@ from itertools import cycle, repeat
 from pathlib import Path
 from random import choice
 from typing import Tuple
-
+import numpy as np
 import torch
 from gym import Env, spaces
 from natsort import natsorted
@@ -98,6 +98,7 @@ class XenonCrowEnv(Env):
         self.observation_space = spaces.Box(
             low=0, high=255, shape=(1, n_channels, height, width)
         )
+        self.save_masks = False
 
     def set_random_seed(self, seed):
         self.seed = seed
@@ -122,33 +123,48 @@ class XenonCrowEnv(Env):
 
     def step(self, action):  # 0 is off, 1 is on
         step_mask = self.state[:, -1:, :, :].byte()
-
+        trunc = False
         if action == 0:
             self.progress_mask = torch.clamp(self.progress_mask - step_mask, 0, 1)
             reward = -1.0 * self.iou_pytorch(
-                step_mask, self.dataset.dataset.gt.byte()
+                step_mask.squeeze(0), self.dataset.dataset.gt.byte()
             )
         else:
             self.progress_mask = torch.logical_or(self.progress_mask, step_mask).byte()
             reward = 2.0 * self.iou_pytorch(
-                step_mask, self.dataset.dataset.gt.byte()
+                step_mask.squeeze(0), self.dataset.dataset.gt.byte()
             )
 
-        if reward > torch.tensor(0.98):
+        total_iou = self.iou_pytorch(
+            self.progress_mask.byte(), self.dataset.dataset.gt.byte()
+        )
+        if total_iou > 0.8:
+            reward += (10 * total_iou)
             done = True
         else:
             done = False
 
         if self.steps ==  2 * len(self.dataset.dataset):
-            done = True
+            reward += total_iou
+            trunc = True
         else:
             self.steps += 1
 
+        if self.save_masks and (done or trunc):
+            self.log_mask()
+
         info = {}
         img, next_state, _ = next(self.iterator)
-        observation = torch.cat([img, self.progress_mask, next_state], dim=1)
+        self.state = torch.cat([img, self.progress_mask, next_state], dim=1)
         # Needs to return done, truncated. Here we use `done` for both.
-        return observation, reward, done, done, info
+        return self.state, reward, done, trunc, info
+    
+    def log_mask(self):
+        img = self.progress_mask[0, 0].detach().cpu().to(torch.uint8).numpy() * 255
+        gt = self.dataset.dataset.gt[0].detach().cpu().to(torch.uint8).numpy() * 255
+        img = np.stack([gt, np.zeros_like(gt), img], axis=-1)
+        img = Image.fromarray(img)
+        img.save(f"./logs/{self.dataset.dataset.image_path.stem}.png")
 
     def render(self):
         return torch.vstack([self.state.squeeze(0), self.progress_mask]).unsqueeze(0)

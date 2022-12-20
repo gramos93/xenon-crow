@@ -14,7 +14,7 @@ class D3QNTrainer(object):
         progress_bar = trange(
             max_episodes, ncols=150, desc="Training", position=0, leave=True
         )
-        for _ in progress_bar:
+        for ep in progress_bar:
             step, reward, total_loss = 1, 0.0, 0.0
             terminated = False
             state, _ = env.reset()
@@ -39,10 +39,13 @@ class D3QNTrainer(object):
                 # if step > 250:
                 #     break
             
-            agent.update_epsilon(agent.epsilon * 0.99)
+            agent.update_epsilon(agent.epsilon * 0.95)
             total_loss /= step
             episode_rewards.append(reward)
             progress_bar.set_postfix(reward=reward, epsilon=agent.epsilon, loss=total_loss, refresh=True)
+
+            if ep == max_episodes-15:
+                env.save_masks = True
 
         return episode_rewards
 
