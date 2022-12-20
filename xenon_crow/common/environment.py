@@ -146,7 +146,7 @@ class XenonCrowEnv(Env):
         else:
             done = False
 
-        if self.steps ==  2 * len(self.dataset.dataset):
+        if self.steps ==  1 * len(self.dataset.dataset):
             reward += total_iou
             trunc = True
         else:

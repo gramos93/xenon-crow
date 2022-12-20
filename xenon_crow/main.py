@@ -18,7 +18,7 @@ ENV.seed = seed
 np.random.seed(seed)
 manual_seed(seed)
 
-MAX_EP = 100
+MAX_EP = 2000
 
 GAMMA = 0.99
 LR = 1e-5
@@ -26,7 +26,7 @@ TAU = 5e-3
 EPS = 1.0
 
 TRAIN_INTER = 4
-BUFFER_SIZE = 200
+BUFFER_SIZE = 300
 BATCH_SIZE = 64
 
 replay_buffer = RandomBuffer(
