@@ -9,6 +9,8 @@ from natsort import natsorted
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import Compose, ToTensor, Resize, InterpolationMode
+from sklearn.metrics import jaccard_score
+from torchvision.utils import save_image
 
 
 class XenonDataHandler(object):
@@ -126,12 +128,12 @@ class XenonCrowEnv(Env):
         trunc = False
         if action == 0:
             self.progress_mask = torch.clamp(self.progress_mask - step_mask, 0, 1)
-            reward = -1.0 * self.iou_pytorch(
+            reward = -1 * self.iou_pytorch(
                 step_mask.squeeze(0), self.dataset.dataset.gt.byte()
             )
         else:
             self.progress_mask = torch.logical_or(self.progress_mask, step_mask).byte()
-            reward = 2.0 * self.iou_pytorch(
+            reward = 2 * self.iou_pytorch(
                 step_mask.squeeze(0), self.dataset.dataset.gt.byte()
             )
 
@@ -170,23 +172,8 @@ class XenonCrowEnv(Env):
         return torch.vstack([self.state.squeeze(0), self.progress_mask]).unsqueeze(0)
 
     def iou_pytorch(self, outputs: torch.Tensor, labels: torch.Tensor):
-        SMOOTH = 1e-6
-        # You can comment out this line if you are passing tensors of equal shape
-        # But if you are passing output from UNet or something it will most probably
-        # be with the BATCH x 1 x H x W shape
+        outputs = outputs.flatten()
+        labels = labels.flatten()
 
-        # outputs = outputs.squeeze(1)  # BATCH x 1 x H x W => BATCH x H x W
-
-        intersection = (
-            (outputs & labels).float().sum()
-        )  # Will be zero if Truth=0 or Prediction=0
-
-        union = (outputs | labels).float().sum()  # Will be zero if both are 0
-
-        iou = (intersection + SMOOTH) / (
-            union + SMOOTH
-        ).item()  # We smooth our devision to avoid 0/0
-        if iou < 0.01:
-            iou = -0.10
-
+        iou = jaccard_score(outputs, labels, average="binary")
         return iou
