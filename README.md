@@ -152,20 +152,13 @@ In order to start a training session on the provided dataset first download it f
     BUFFER_SIZE = 400
     BATCH_SIZE = 64
    ```
- 3. Data file structure
-   path for training images: 
+ 3. Path for training images, ground truth, states
    ```sh
    xenon-crow\data\train\imgs
-   ```
-   path for target masks: 
-   ```sh
    xenon-crow\data\train\masks\gt
-   ```
-   path for state superpixel masks:
-   ```sh
    xenon-crow\data\train\masks\states
    ```
-4. Annotation tool to make data sets:
+4. Annotation tool to make data sets
     ```python
    python label_maker.py
    ```
