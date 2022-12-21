@@ -101,19 +101,20 @@ class A2CAgent(Module):
         self.replay_buffer = buffer
         self._eps = torch.finfo(torch.float32).eps
         model_class = ConvActorCritic if format == "conv" else MplActorCritic
-        self.model = model_class(input_dim, output_dim)
+        self.device = "cuda"
+        self.model = model_class(input_dim, output_dim).to(self.device)
         self.optimizer = torch.optim.Adam(
             self.model.parameters(), lr=learning_rate
         )
 
     def get_action(self, state):
-        probs, value = self.model(state)
-        action_pool = Categorical(probs)
+        probs, value = self.model(state.to(self.device))
+        action_pool = Categorical(probs.cpu())
         action = action_pool.sample()
         log_prob = action_pool.log_prob(action)
         entropy = action_pool.entropy().sum()
         # entropy = -(torch.mean(probs) * torch.log(probs)).sum()
-        return action.item(), log_prob, entropy, value
+        return action.item(), log_prob, entropy, value.cpu()
 
     def __compute_returns(self, rewards):
         returns = deque(maxlen=len(rewards))
