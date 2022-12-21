@@ -153,9 +153,18 @@ In order to start a training session on the provided dataset first download it f
     BATCH_SIZE = 64
    ```
  3. Data file structure
-   path for training images: xenon-crow\data\train\imgs
-   path for target masks: xenon-crow\data\train\masks\gt
-   path for state superpixel masks: xenon-crow\data\train\masks\states
+   path for training images: 
+   ```sh
+   xenon-crow\data\train\imgs
+   ```
+   path for target masks: 
+   ```sh
+   xenon-crow\data\train\masks\gt
+   ```
+   path for state superpixel masks:
+   ```sh
+   xenon-crow\data\train\masks\states
+   ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
