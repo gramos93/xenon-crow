@@ -42,8 +42,6 @@
     <!-- <a href="https://github.com/gramos93/xenon-crow"><strong>Explore the docs »</strong></a> -->
     <!-- <br /> -->
     <br />
-    <a href="https://github.com/gramos93/xenon-crow">View Demo</a>
-    ·
     <a href="https://github.com/gramos93/xenon-crow/issues">Report Bug</a>
     ·
     <a href="https://github.com/gramos93/xenon-crow/issues">Request Feature</a>
@@ -69,8 +67,6 @@
       </ul>
     </li>
     <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
@@ -109,15 +105,13 @@
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
+To get started using the Computer-Aided Labelling for Inspection (CALI) tool you'll need a Python 3.8+ installation, which is the default Python version on Ubuntu 20.04. 
 
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
+* Python (On Ubuntu)
   ```sh
-  npm install npm@latest -g
+  sudo apt install python3 python3-pip
   ```
 
 ### Installation
@@ -125,33 +119,46 @@ This is an example of how to list things you need to use the software and how to
 1. Clone the repo
    ```sh
    git clone https://github.com/gramos93/xenon-crow.git
+   cd ./xenon-crow
    ```
-2. Install NPM packages
+2. Install the Python dependencies with pip packages
    ```sh
-   npm install
-   ```
-3. Enter your API in `config.js`
-   ```js
-   const API_KEY = 'ENTER YOUR API';
+   pip install -r requirements.txt
    ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-
 <!-- USAGE EXAMPLES -->
 ## Usage
 
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+In order to start a training session on the provided dataset first download it from here. Un-compress the dataset folder in the `./data` folder inside the xenon-crow repo you just cloned.
 
-_For more examples, please refer to the [Documentation](https://example.com)_
+1. Training an agent
+   ```sh
+   python ./xenon-crow/main.py --algorithm {d3qn, reinforce, a2c}
+   ```
+2. The hyperparameters are place in the beggining of the `main.py` script and they can be changed from there before running the training.
+   ```python
+    seed = 42
+    MAX_EP = 100
+
+    GAMMA = 0.99
+    LR = 1e-4
+    TAU = 1e-3
+    EPS = 1.0
+
+    TRAIN_INTER = 4
+    BUFFER_SIZE = 400
+    BATCH_SIZE = 64
+   ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 
 <!-- ROADMAP -->
-## Roadmap
+<!-- ## Roadmap
 
 - [ ] Feature 1
 - [ ] Feature 2
@@ -160,12 +167,12 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 
 See the [open issues](https://github.com/gramos93/xenon-crow/issues) for a full list of proposed features (and known issues).
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p> -->
 
 
 
 <!-- CONTRIBUTING -->
-## Contributing
+<!-- ## Contributing
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
@@ -178,7 +185,7 @@ Don't forget to give the project a star! Thanks again!
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
+<p align="right">(<a href="#readme-top">back to top</a>)</p> -->
 
 
 
@@ -187,19 +194,13 @@ Don't forget to give the project a star! Thanks again!
 
 Distributed under the MIT License. See `LICENSE.txt` for more information.
 
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
 <!-- CONTACT -->
 ## Contact
 
-Gabriel Ramos - gabriel.ramos.1@ulaval.ca.com
-Kevin Laurent - kevin.laurent.1@ulaval.ca.com
+Gabriel Ramos - gabriel.ramos.1@ulaval.ca
+Kevin Laurent - kevin.laurent.1@ulaval.ca
 
 Project Link: [https://github.com/gramos93/xenon-crow](https://github.com/gramos93/xenon-crow)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 <!-- ACKNOWLEDGMENTS -->
@@ -207,7 +208,6 @@ Project Link: [https://github.com/gramos93/xenon-crow](https://github.com/gramos
 
 * [TORNGATS](https://torngats.ca)
 * [University Laval](https://ulaval.ca/en)
-* []()
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

@@ -1,7 +1,7 @@
 from itertools import cycle
 from pathlib import Path
 from random import choice
-from typing import Tuple
+from typing import Tuple, List
 import numpy as np
 import torch
 from gym import Env, spaces
@@ -43,6 +43,33 @@ class XenonDataHandler(object):
         not_finals = torch.logical_not(not_finals).float()
 
         return states, action_hist, rewards, next_states, not_finals
+
+class XenonDataHandlerReinforce(object):
+    def __call__(self, batch: List) -> Tuple:
+        """
+        Input :
+            - batch, a list of n=batch_size elements from the replay buffer
+            - target_network, the target network to compute the one-step lookahead target
+            - gamma, the discount factor
+
+        Returns :
+            - states, a numpy array of size (batch_size, state_dim) containing the states in the batch
+            - (actions, targets) : where actions and targets both
+                        have the shape (batch_size, ). Actions are the
+                        selected actions according to the target network
+                        and targets are the one-step lookahead targets.
+        """
+        log_probs, values, rewards = [], [], []
+        for s in batch:
+            log_probs.append(s[0])
+            values.append(s[1])
+            rewards.append(s[2])
+
+        log_probs = torch.stack(log_probs).to(torch.float32).squeeze(1)
+        values = torch.tensor(values).to(torch.float32).unsqueeze(1)
+        rewards = torch.tensor(rewards).to(torch.int64).unsqueeze(1)
+        
+        return log_probs, values, rewards
 
 
 class XenonCrowDataset(Dataset):
