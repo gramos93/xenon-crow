@@ -63,7 +63,6 @@ def call_d3qn():
     hist = trainer.run(ENV, agent, MAX_EP, TRAIN_INTER)
     save(agent.model_target.state_dict(), f"models/{gym_name}_D3QN_Target.pth")
     save(agent.model_local.state_dict(), f"models/{gym_name}_D3QN_Local.pth")
-
     plot_and_save(hist, figname="Xenon-D3QN.png")
 
 
@@ -82,9 +81,8 @@ def call_reinforce():
 
     trainer = ReinforceTrainer()
     hist = trainer.run(ENV, agent, MAX_EP)
-    # save(agent.model.state_dict(), f"./models/{gym_name}_REINFORCE.pth")
-
-    # plot_and_save(hist, figname="Xenon-REINFORCE.png")
+    save(agent.model.state_dict(), f"./models/{gym_name}_REINFORCE.pth")
+    plot_and_save(hist, figname="Xenon-REINFORCE.png")
 
 
 def call_a2c():
@@ -102,18 +100,17 @@ def call_a2c():
 
     trainer = A2CTrainer()
     hist = trainer.run(ENV, agent, MAX_EP)
-    # save(agent.model.state_dict(), f"./models/{gym_name}_A2C.pth")
-
-    # plot_and_save(hist, figname="Xenon-A2C.png")
+    save(agent.model.state_dict(), f"./models/{gym_name}_A2C.pth")
+    plot_and_save(hist, figname="Xenon-A2C.png")
 
 
 if __name__ == "__main__":
-    # args = parser.parse_args()
+    args = parser.parse_args()
 
-    # if args.algorithm == "d3qn":
-    #     call_d3qn()
-    # elif args.algorithm == "reinforce":
-    #     call_reinforce()
-    # elif args.algorithm == "a2c":
-    #     call_a2c()
-    call_a2c()
+    if args.algorithm == "d3qn":
+        call_d3qn()
+    elif args.algorithm == "reinforce":
+        call_reinforce()
+    elif args.algorithm == "a2c":
+        call_a2c()
+
