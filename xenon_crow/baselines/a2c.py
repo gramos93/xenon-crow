@@ -137,8 +137,8 @@ class A2CAgent(Module):
             critic_loss.append(adv**2)
             actor_loss.append(-log_prob * adv)
 
-        actor_loss = torch.cat(actor_loss).sum()
-        critic_loss = self.crt_mult * torch.cat(critic_loss).sum()
+        actor_loss = torch.stack(actor_loss).sum()
+        critic_loss = self.crt_mult * torch.stack(critic_loss).sum()
 
         return actor_loss + critic_loss + 0.001 * entropy
 

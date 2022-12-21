@@ -11,6 +11,7 @@ from torch import manual_seed, save
 from xenon_crow.baselines import DuelingDQNAgent, ReinforceAgent, A2CAgent
 from xenon_crow.common import (
     RandomBuffer,
+    ReinforceBuffer,
     D3QNTrainer,
     ReinforceTrainer,
     A2CTrainer,
@@ -67,9 +68,7 @@ def call_d3qn():
 
 
 def call_reinforce():
-    replay_buffer = RandomBuffer(
-        max_size=BUFFER_SIZE,
-        batch_size=BATCH_SIZE,
+    replay_buffer = ReinforceBuffer(
         data_handler=XenonDataHandlerReinforce(),
     )
     agent = ReinforceAgent(
@@ -82,16 +81,14 @@ def call_reinforce():
     )
 
     trainer = ReinforceTrainer()
-    hist = trainer.run(ENV, agent, MAX_EP, TRAIN_INTER)
+    hist = trainer.run(ENV, agent, MAX_EP)
     # save(agent.model.state_dict(), f"./models/{gym_name}_REINFORCE.pth")
 
     # plot_and_save(hist, figname="Xenon-REINFORCE.png")
 
 
 def call_a2c():
-    replay_buffer = RandomBuffer(
-        max_size=BUFFER_SIZE,
-        batch_size=BATCH_SIZE,
+    replay_buffer = ReinforceBuffer(
         data_handler=XenonDataHandlerReinforce(),
     )
     agent = A2CAgent(
@@ -111,11 +108,12 @@ def call_a2c():
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()
+    # args = parser.parse_args()
 
-    if args.algorithm == "d3qn":
-        call_d3qn()
-    elif args.algorithm == "reinforce":
-        call_reinforce()
-    elif args.algorithm == "a2c":
-        call_a2c()
+    # if args.algorithm == "d3qn":
+    #     call_d3qn()
+    # elif args.algorithm == "reinforce":
+    #     call_reinforce()
+    # elif args.algorithm == "a2c":
+    #     call_a2c()
+    call_reinforce()

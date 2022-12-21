@@ -34,7 +34,7 @@
     <img src="assets/logo.png" alt="Logo" width="160" height="160">
   </a>
 
-<h3 align="center">Xenon-Crow</h3>
+<h3 align="center">Computer-Aided Labelling for Inspection (CALI)</h3>
 
   <p align="center">
     The preventive assessment and maintenance of large infrastructures is one of the arduous responsibilities of governments and private infrastructure owners. Not only relating to the infrastructure usability but also public safety and legal liability, the assessment of infrastructures is done mainly manually by certified inspectors. Nevertheless, due to the high cost and inefficiency of manual inspection, the research and development in the field of automated inspection (NDT4.0) is growing rapidly. Indeed, propelled by the last decade's improvements to small drones, multi-modal image acquisition technology, computer-vision and deep learning, inspectors are collecting and analyzing more data than ever before. In order to ease the introduction of deep learning techniques in inspection scenarios, we propose a Computer-Aided Labelling for Inspection (CALI) tool geared towards assisting inspectors, i) analyze and understand the data faster, ii) generate region of interest (ROI) annotations more efficiently and iii) reduce bias due to the subjective nature of manual inspection. We formulate the annotation problem following a multi-agent Markov Decision Process (MDP), where the agent and the inspector collaborate, through priors and corrections, in order to conquer the annotation tasks at hand. At it's core, the agent benefits from a semi-supervised super-pixel segmentation network and the whole process is optimized using the Duelling Double Deep Q-Network (D3QN) framework. We demonstrate the performance and generality of our method in two infrared thermography inspection dataset, the first collected in a controlled environment with laboratory samples and the second collected during a real bridge inspections scenario.
@@ -54,7 +54,7 @@
   <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#about-the-project">About The Project</a>
+      <a href="#screenshot">Screenshot</a>
       <ul>
         <li><a href="#built-with">Built With</a></li>
       </ul>
@@ -76,7 +76,7 @@
 
 
 <!-- ABOUT THE PROJECT -->
-## About The Project
+## Screenshot
 
 [![Product Name Screen Shot][product-screenshot]](https://example.com)
 

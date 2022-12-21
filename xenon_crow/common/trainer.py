@@ -91,10 +91,6 @@ class ReinforceTrainer(object):
             ma_reward = 0.05 * reward + (1 - 0.05) * ma_reward
             progress_bar.set_postfix(ma_reward=ma_reward, reward=reward, loss=loss, refresh=True)
 
-            if ma_reward > env.spec.reward_threshold:
-                print("Solved! Running reward: {}".format(ma_reward))
-                break
-
         return episode_rewards
 
 
@@ -140,8 +136,5 @@ class A2CTrainer(object):
             loss = agent.update(entropy)
 
             progress_bar.set_postfix(reward=reward, loss=loss, ma_reward=ma_reward, refresh=True)
-            if ma_reward > env.spec.reward_threshold:
-                print("Solved! Running reward: {}".format(ma_reward))
-                break
 
         return episode_rewards

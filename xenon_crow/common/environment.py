@@ -137,7 +137,6 @@ class XenonCrowEnv(Env):
         self.dataset = DataLoader(
             XenonCrowDataset(self.root, choice(self.episodes)),
             shuffle=False,
-            shuffle=False,
             batch_size=1,
         )
         self.iterator = cycle(self.dataset)
