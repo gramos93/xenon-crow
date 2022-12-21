@@ -87,6 +87,7 @@ class XenonCrowEnv(Env):
     def __init__(self, path):
         super(XenonCrowEnv, self).__init__()
         self.seed = None
+        self.iter = 0
         # Path to whole dataset
         self.root = path
         # List of available images to serve as episodes.
@@ -100,7 +101,7 @@ class XenonCrowEnv(Env):
         self.observation_space = spaces.Box(
             low=0, high=255, shape=(1, n_channels, height, width)
         )
-        self.save_masks = False
+        self.save_masks = True
 
     def set_random_seed(self, seed):
         self.seed = seed
@@ -109,13 +110,13 @@ class XenonCrowEnv(Env):
         self.runs = 0
         self.dataset = DataLoader(
             XenonCrowDataset(self.root, choice(self.episodes)),
-            shuffle=True,
+            shuffle=False,
             batch_size=1,
         )
         self.iterator = cycle(self.dataset)
         self.steps = 0
         self.progress_mask = torch.zeros(
-            (1, 1, *self.observation_space.shape[2:]), dtype=torch.uint8
+           (1, 1, *self.observation_space.shape[2:]), dtype=torch.uint8
         )
         # This step initializes the self.image and self.gt of the Dataset.
         img, next_state, _ = next(self.iterator)
@@ -127,27 +128,31 @@ class XenonCrowEnv(Env):
         step_mask = self.state[:, -1:, :, :].byte()
         trunc = False
         if action == 0:
-            self.progress_mask = torch.clamp(self.progress_mask - step_mask, 0, 1)
+            self.progress_mask = torch.logical_and(self.progress_mask, torch.logical_not(step_mask)).byte()
             reward = -1 * self.iou_pytorch(
                 step_mask.squeeze(0), self.dataset.dataset.gt.byte()
             )
+            if reward == 0:
+                reward = 0.1
         else:
             self.progress_mask = torch.logical_or(self.progress_mask, step_mask).byte()
             reward = 2 * self.iou_pytorch(
                 step_mask.squeeze(0), self.dataset.dataset.gt.byte()
             )
+            if reward == 0:
+                reward = -0.2
 
         total_iou = self.iou_pytorch(
             self.progress_mask.byte(), self.dataset.dataset.gt.byte()
         )
-        if total_iou > 0.8:
-            reward += (10 * total_iou)
+        if total_iou > 0.4:
+            reward += (100 * total_iou)
             done = True
         else:
             done = False
 
-        if self.steps ==  1 * len(self.dataset.dataset):
-            reward += total_iou
+        if self.steps ==  2 * len(self.dataset.dataset):
+            #reward += total_iou
             trunc = True
         else:
             self.steps += 1
@@ -162,11 +167,12 @@ class XenonCrowEnv(Env):
         return self.state, reward, done, trunc, info
     
     def log_mask(self):
+        self.iter += 1
         img = self.progress_mask[0, 0].detach().cpu().to(torch.uint8).numpy() * 255
         gt = self.dataset.dataset.gt[0].detach().cpu().to(torch.uint8).numpy() * 255
         img = np.stack([gt, np.zeros_like(gt), img], axis=-1)
         img = Image.fromarray(img)
-        img.save(f"./logs/{self.dataset.dataset.image_path.stem}.png")
+        img.save(f"./logs/{self.dataset.dataset.image_path.stem}"+"_"+str(self.iter)+".png")
 
     def render(self):
         return torch.vstack([self.state.squeeze(0), self.progress_mask]).unsqueeze(0)
