@@ -1,7 +1,8 @@
 from collections import deque
 import torch
 from torch.distributions import Categorical
-from torch.nn import Conv2d, Linear, Module, ReLU, Sequential, SiLU, Softmax, LayerNorm
+from torch.nn import Conv2d, Linear, Module, ReLU, Sequential, SiLU, Softmax, LayerNorm, Identity
+from torchvision.models import resnet18
 
 
 class MplActorCritic(Module):
@@ -42,20 +43,27 @@ class ConvActorCritic(Module):
         super(ConvActorCritic, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
-        self.conv = Sequential(
-            Conv2d(input_dim[0], 32, kernel_size=5, stride=1),
-            ReLU(),
-            Conv2d(32, 64, kernel_size=5, stride=1),
-            ReLU(),
-            Conv2d(64, 64, kernel_size=3, stride=1),
-            ReLU(),
+        self.features_layer = resnet18()
+        self.features_layer.conv1 = Conv2d(
+            input_dim[1],
+            self.features_layer.conv1.out_channels,
+            self.features_layer.conv1.kernel_size,
+            self.features_layer.conv1.stride,
+            self.features_layer.conv1.padding,
         )
-        self.fc_input_dim = self.feature_size()
+        self.features_layer.fc = Identity()
 
-        self.value_stream = Sequential(
-            Linear(self.fc_input_dim, 128), ReLU(), Linear(128, self.output_dim)
+        self.fc_input_dim = self.feature_size()
+        self.critic_layer = Sequential(
+            Linear(self.fc_input_dim, 128), ReLU(), Linear(128, 1)
         )
-        self.activation = Softmax(dim=1)
+        self.actor_layer = Sequential(
+            Linear(self.fc_input_dim, 128), 
+            LayerNorm(128),
+            SiLU(), 
+            Linear(128, output_dim), 
+            Softmax(dim=1)
+        )
 
     def get_weights(self):
         return self.state_dict()
@@ -70,18 +78,19 @@ class ConvActorCritic(Module):
         return self.load_state_dict(weights, strict=strict)
 
     def forward(self, state):
-        features = self.conv(state)
-        features = features.view(features.size(0), -1)
-        values = self.value_stream(features)
-        return self.activation(values)
+        features = self.features_layer(state)
+        log_prob = self.actor_layer(features)
+        value = self.critic_layer(features)
+        return log_prob, value
 
     @torch.no_grad()
     def feature_size(self):
         return (
-            self.conv(torch.zeros(1, *self.input_dim, requires_grad=False))
+            self.features_layer(torch.zeros(self.input_dim, requires_grad=False))
             .view(1, -1)
             .size(1)
         )
+
 
 
 class A2CAgent(Module):

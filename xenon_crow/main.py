@@ -101,7 +101,7 @@ def call_a2c():
     )
 
     trainer = A2CTrainer()
-    hist = trainer.run(ENV, agent, MAX_EP, TRAIN_INTER)
+    hist = trainer.run(ENV, agent, MAX_EP)
     # save(agent.model.state_dict(), f"./models/{gym_name}_A2C.pth")
 
     # plot_and_save(hist, figname="Xenon-A2C.png")
@@ -116,4 +116,4 @@ if __name__ == "__main__":
     #     call_reinforce()
     # elif args.algorithm == "a2c":
     #     call_a2c()
-    call_reinforce()
+    call_a2c()
