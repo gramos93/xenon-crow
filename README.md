@@ -136,7 +136,7 @@ In order to start a training session on the provided dataset first download it f
 
 1. Training an agent
    ```sh
-   python ./xenon-crow/main.py --algorithm {d3qn, reinforce, a2c}
+   python ./xenon-crow/main.py {d3qn, reinforce, a2c}
    ```
 2. The hyperparameters are place in the beggining of the `main.py` script and they can be changed from there before running the training.
    ```python
