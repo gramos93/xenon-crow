@@ -165,6 +165,10 @@ In order to start a training session on the provided dataset first download it f
    ```sh
    xenon-crow\data\train\masks\states
    ```
+4. Annotation tool to make data sets:
+    ```python
+   python label_maker.py
+   ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
