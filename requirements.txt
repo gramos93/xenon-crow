@@ -11,11 +11,15 @@ ipykernel
 ipython
 ipywidgets
 jupyter
+dash
+dash-extensions
+dash-canvas
 
 scikit-learn
 scikit-image
 matplotlib
 seaborn
+plotly
 Pillow
 
 gym

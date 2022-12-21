@@ -153,11 +153,11 @@ In order to start a training session on the provided dataset first download it f
     BATCH_SIZE = 64
    ```
  3. Path for training images, ground truth, states
-   ```sh
-   xenon-crow\data\train\imgs
-   xenon-crow\data\train\masks\gt
-   xenon-crow\data\train\masks\states
-   ```
+    ```sh
+     xenon-crow\data\train\imgs
+     xenon-crow\data\train\masks\gt
+     xenon-crow\data\train\masks\states
+    ```
 4. Annotation tool to make data sets
     ```python
    python label_maker.py
@@ -208,6 +208,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 ## Contact
 
 Gabriel Ramos - gabriel.ramos.1@ulaval.ca
+<br>
 Kevin Laurent - kevin.laurent.1@ulaval.ca
 
 Project Link: [https://github.com/gramos93/xenon-crow](https://github.com/gramos93/xenon-crow)
