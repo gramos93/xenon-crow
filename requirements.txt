@@ -4,6 +4,7 @@ glob2
 natsort
 typing_extensions
 
+numpy == "1.23.4" # Later version cause a bug in seaborn plotting.
 pytest
 
 ipykernel
@@ -11,6 +12,8 @@ ipython
 ipywidgets
 jupyter
 
+scikit-learn
+scikit-image
 matplotlib
 seaborn
 Pillow

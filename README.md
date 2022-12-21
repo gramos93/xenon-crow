@@ -37,7 +37,7 @@
 <h3 align="center">Xenon-Crow</h3>
 
   <p align="center">
-    Automatic thermal / IR imaging labeling software. Powered by semi-supervised semantic segmantation and Deep-RL.
+    The preventive assessment and maintenance of large infrastructures is one of the arduous responsibilities of governments and private infrastructure owners. Not only relating to the infrastructure usability but also public safety and legal liability, the assessment of infrastructures is done mainly manually by certified inspectors. Nevertheless, due to the high cost and inefficiency of manual inspection, the research and development in the field of automated inspection (NDT4.0) is growing rapidly. Indeed, propelled by the last decade's improvements to small drones, multi-modal image acquisition technology, computer-vision and deep learning, inspectors are collecting and analyzing more data than ever before. In order to ease the introduction of deep learning techniques in inspection scenarios, we propose a Computer-Aided Labelling for Inspection (CALI) tool geared towards assisting inspectors, i) analyze and understand the data faster, ii) generate region of interest (ROI) annotations more efficiently and iii) reduce bias due to the subjective nature of manual inspection. We formulate the annotation problem following a multi-agent Markov Decision Process (MDP), where the agent and the inspector collaborate, through priors and corrections, in order to conquer the annotation tasks at hand. At it's core, the agent benefits from a semi-supervised super-pixel segmentation network and the whole process is optimized using the Duelling Double Deep Q-Network (D3QN) framework. We demonstrate the performance and generality of our method in two infrared thermography inspection dataset, the first collected in a controlled environment with laboratory samples and the second collected during a real bridge inspections scenario.
     <br />
     <!-- <a href="https://github.com/gramos93/xenon-crow"><strong>Explore the docs »</strong></a> -->
     <!-- <br /> -->
@@ -96,7 +96,7 @@
 * [![Laravel][Laravel.com]][Laravel-url]
 * [![Bootstrap][Bootstrap.com]][Bootstrap-url]
 * [![JQuery][JQuery.com]][JQuery-url] -->
-[![Python][python.com]][Python-url]
+[![Python][python.com]][Python-url] [![Pytorch][pytorch.com]][Pytorch-url] [![sklearn][sklearn.com]][sklearn-url] [![openai][openai.com]][openai-url] 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -246,3 +246,9 @@ Project Link: [https://github.com/gramos93/xenon-crow](https://github.com/gramos
 [JQuery-url]: https://jquery.com 
 [Python.com]: https://img.shields.io/badge/python-0769AD?style=for-the-badge&logo=python&logoColor=yellow
 [Python-url]: https://python.com
+[Pytorch.com]: https://img.shields.io/badge/pytorch-0769AD?style=for-the-badge&logo=pytorch&logoColor=red
+[Pytorch-url]: https://pytorch.com
+[sklearn.com]: https://img.shields.io/badge/sklearn-0769AD?style=for-the-badge&logo=scikit-learn&logoColor=white
+[sklearn-url]: https://scikit-learn.org
+[openai.com]: https://img.shields.io/badge/openai-0769AD?style=for-the-badge&logo=openai&logoColor=black
+[openai-url]: https://openai.com
