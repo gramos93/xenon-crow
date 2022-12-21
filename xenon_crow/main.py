@@ -13,20 +13,20 @@ from xenon_crow.common import RandomBuffer, D3QNTrainer, XenonCrowEnv, XenonData
 
 seed = 42
 gym_name = "Thermal"
-ENV = XenonCrowEnv("C:/Users/laure/Desktop/xenon-crow/data/train_4")
+ENV = XenonCrowEnv("./data/train")
 ENV.seed = seed
 np.random.seed(seed)
 manual_seed(seed)
 
-MAX_EP = 2000
+MAX_EP = 2500
 
 GAMMA = 0.99
-LR = 1e-5
-TAU = 5e-3
+LR = 1e-4
+TAU = 1e-3
 EPS = 1.0
 
 TRAIN_INTER = 4
-BUFFER_SIZE = 300
+BUFFER_SIZE = 400
 BATCH_SIZE = 64
 
 replay_buffer = RandomBuffer(
@@ -45,7 +45,7 @@ agent = DuelingDQNAgent(
 
 trainer = D3QNTrainer()
 hist = trainer.run(ENV, agent, MAX_EP, TRAIN_INTER)
-save(agent.model_target.state_dict(), f"C:/Users/laure/Desktop/xenon-crow/models/{gym_name}_D3QN_Target.pth")
-save(agent.model_local.state_dict(), f"C:/Users/laure/Desktop/xenon-crow/models/{gym_name}_D3QN_Local.pth")
+save(agent.model_target.state_dict(), f"models/{gym_name}_D3QN_Target.pth")
+save(agent.model_local.state_dict(), f"models/{gym_name}_D3QN_Local.pth")
 
 plot_and_save(hist, figname="Xenon-D3QN.png")

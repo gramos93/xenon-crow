@@ -1,4 +1,4 @@
-from itertools import cycle, repeat
+from itertools import cycle
 from pathlib import Path
 from random import choice
 from typing import Tuple
@@ -10,7 +10,6 @@ from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import Compose, ToTensor, Resize, InterpolationMode
 from sklearn.metrics import jaccard_score
-from torchvision.utils import save_image
 
 
 class XenonDataHandler(object):
@@ -109,7 +108,7 @@ class XenonCrowEnv(Env):
         self.runs = 0
         self.dataset = DataLoader(
             XenonCrowDataset(self.root, choice(self.episodes)),
-            shuffle=True,
+            shuffle=False,
             batch_size=1,
         )
         self.iterator = cycle(self.dataset)
@@ -127,13 +126,13 @@ class XenonCrowEnv(Env):
         step_mask = self.state[:, -1:, :, :].byte()
         trunc = False
         if action == 0:
-            self.progress_mask = torch.clamp(self.progress_mask - step_mask, 0, 1)
-            reward = -0.1 * self.iou_pytorch(
+            self.progress_mask =  torch.logical_and(self.progress_mask, torch.logical_not(step_mask)).byte()
+            reward = -1.0 * self.iou_pytorch(
                 step_mask.squeeze(0), self.dataset.dataset.gt.byte()
             )
         else:
             self.progress_mask = torch.logical_or(self.progress_mask, step_mask).byte()
-            reward = 5.0 * self.iou_pytorch(
+            reward = 2.0 * self.iou_pytorch(
                 step_mask.squeeze(0), self.dataset.dataset.gt.byte()
             )
 
@@ -176,4 +175,8 @@ class XenonCrowEnv(Env):
         labels = labels.flatten()
 
         iou = jaccard_score(outputs, labels, average="binary")
+        
+        if iou < 0.1:
+            iou = -0.1
+
         return iou
