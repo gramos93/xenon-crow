@@ -109,16 +109,17 @@ class ReinforceAgent(Module):
         self.gamma = gamma
         self.replay_buffer = buffer if buffer is not None else ReinforceBuffer()
         self._eps = torch.finfo(torch.float32).eps
+        self.device = "cuda"
         model_class = ConvReinforce if format == "conv" else MplReinforce
-        self.model = model_class(input_dim, output_dim)
+        self.model = model_class(input_dim, output_dim).to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
 
     def get_action(self, state):
-        probs, value = self.model(state)
-        action_pool = Categorical(probs)
+        probs, value = self.model(state.to(self.device))
+        action_pool = Categorical(probs.cpu())
         action = action_pool.sample()
         log_prob = action_pool.log_prob(action)
-        return action.item(), log_prob, value
+        return action.item(), log_prob, value.cpu()
 
     def __compute_returns(self, rewards):
         returns = deque(maxlen=len(rewards))
