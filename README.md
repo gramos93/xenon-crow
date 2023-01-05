@@ -96,7 +96,7 @@
 * [![Laravel][Laravel.com]][Laravel-url]
 * [![Bootstrap][Bootstrap.com]][Bootstrap-url]
 * [![JQuery][JQuery.com]][JQuery-url] -->
-[![Python][python.com]][Python-url] [![Pytorch][pytorch.com]][Pytorch-url] [![sklearn][sklearn.com]][sklearn-url] [![openai][openai.com]][openai-url] 
+[![Python][python.org]][Python-url] [![Pytorch][pytorch.org]][Pytorch-url] [![sklearn][sklearn.org]][sklearn-url] [![openai][openai.com]][openai-url] 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -255,11 +255,11 @@ Project Link: [https://github.com/gramos93/xenon-crow](https://github.com/gramos
 [Bootstrap-url]: https://getbootstrap.com
 [JQuery.com]: https://img.shields.io/badge/jQuery-0769AD?style=for-the-badge&logo=jquery&logoColor=white
 [JQuery-url]: https://jquery.com 
-[Python.com]: https://img.shields.io/badge/python-0769AD?style=for-the-badge&logo=python&logoColor=yellow
-[Python-url]: https://python.com
-[Pytorch.com]: https://img.shields.io/badge/pytorch-0769AD?style=for-the-badge&logo=pytorch&logoColor=red
-[Pytorch-url]: https://pytorch.com
-[sklearn.com]: https://img.shields.io/badge/sklearn-0769AD?style=for-the-badge&logo=scikit-learn&logoColor=white
+[Python.org]: https://img.shields.io/badge/python-0769AD?style=for-the-badge&logo=python&logoColor=yellow
+[Python-url]: https://python.org
+[Pytorch.org]: https://img.shields.io/badge/pytorch-0769AD?style=for-the-badge&logo=pytorch&logoColor=red
+[Pytorch-url]: https://pytorch.org
+[sklearn.org]: https://img.shields.io/badge/sklearn-0769AD?style=for-the-badge&logo=scikit-learn&logoColor=white
 [sklearn-url]: https://scikit-learn.org
 [openai.com]: https://img.shields.io/badge/openai-0769AD?style=for-the-badge&logo=openai&logoColor=black
 [openai-url]: https://openai.com
